@@ -1,0 +1,380 @@
+---
+title: "Finalize Installation"
+description: "Complete the setup by starting the service and accessing OpenClaw"
+---
+
+## Overview
+
+After completing the setup script and onboarding, you need to finalize the installation by reloading your shell environment, starting the background service, and ensuring it stays running.
+
+## Final Steps
+
+Follow these steps in order to complete your installation:
+
+<Steps>
+  <Step title="Reload Shell Environment">
+    The setup script added several environment variables to `~/.bashrc`. Activate them by sourcing the file:
+    
+    ```bash
+    source ~/.bashrc
+    ```
+    
+    **What this does:**
+    
+    - Loads `TMPDIR`, `TMP`, and `TEMP` variables pointing to `$PREFIX/tmp`
+    - Exports `SVDIR` for the runit service manager
+    - Updates `PATH` if needed
+    
+    <Tip>
+    You can also close and reopen Termux instead of running `source ~/.bashrc`, but sourcing is faster.
+    </Tip>
+  </Step>
+
+  <Step title="Start the OpenClaw Service">
+    Use the `sv` command (from runit) to start the background service:
+    
+    ```bash
+    sv up openclaw
+    ```
+    
+    **Expected output:**
+    ```
+    ok: run: openclaw: (pid 12345) 0s
+    ```
+    
+    The service is now running in the background.
+    
+    <Info>
+    The `sv` command manages services through runit. It's similar to `systemctl` on traditional Linux but designed for lightweight supervision.
+    </Info>
+  </Step>
+
+  <Step title="Verify Service is Running">
+    Check the service status:
+    
+    ```bash
+    sv status openclaw
+    ```
+    
+    **Healthy output:**
+    ```
+    run: openclaw: (pid 12345) 15s; run: log: (pid 12346) 15s
+    ```
+    
+    This confirms both the main process and logging are active.
+    
+    If the service is down:
+    ```bash
+    # Check the logs for errors
+    tail -f $PREFIX/var/log/openclaw/current
+    
+    # Try starting again
+    sv up openclaw
+    ```
+  </Step>
+
+  <Step title="Apply Wake Lock">
+    **Critical for Android:** Prevent the system from killing the process when Termux is minimized:
+    
+    ```bash
+    termux-wake-lock
+    ```
+    
+    **What this does:**
+    
+    - Acquires a CPU wake lock
+    - Keeps OpenClaw running even when Termux is in the background
+    - Prevents Android from aggressively killing the process
+    
+    <Warning>
+    Without `termux-wake-lock`, Android's battery optimization will terminate the OpenClaw service when you switch apps or lock your screen.
+    </Warning>
+    
+    **To check wake lock status:**
+    ```bash
+    termux-wake-lock status
+    ```
+    
+    **To release the wake lock (stops background operation):**
+    ```bash
+    termux-wake-unlock
+    ```
+  </Step>
+
+  <Step title="Access the Web UI">
+    Open your browser and navigate to:
+    
+    ```
+    http://localhost:18789
+    ```
+    
+    You should see the OpenClaw web interface.
+    
+    <Info>
+    The default port is 18789. If you changed this during onboarding, use your custom port instead.
+    </Info>
+    
+    **From other devices on the same network:**
+    
+    Find your device's IP address:
+    ```bash
+    ifconfig wlan0 | grep inet
+    ```
+    
+    Then access from another device using:
+    ```
+    http://[your-device-ip]:18789
+    ```
+  </Step>
+</Steps>
+
+## Post-Installation Checklist
+
+Confirm everything is working correctly:
+
+<AccordionGroup>
+  <Accordion title="Service Status" icon="circle-check">
+    ```bash
+    sv status openclaw
+    ```
+    
+    Should show:
+    - `run: openclaw: (pid XXXX)`
+    - Running for at least a few seconds
+    - Log service also running
+  </Accordion>
+
+  <Accordion title="Web UI Accessible" icon="browser">
+    - Open http://localhost:18789 in browser
+    - Page loads successfully
+    - No connection errors
+  </Accordion>
+
+  <Accordion title="Wake Lock Active" icon="lock">
+    ```bash
+    termux-wake-lock status
+    ```
+    
+    Should indicate wake lock is held
+  </Accordion>
+
+  <Accordion title="Environment Variables" icon="gear">
+    ```bash
+    echo $TMPDIR
+    echo $SVDIR
+    ```
+    
+    Should output:
+    - `TMPDIR`: `/data/data/com.termux/files/usr/tmp`
+    - `SVDIR`: `/data/data/com.termux/files/usr/var/service`
+  </Accordion>
+
+  <Accordion title="Logs Accessible" icon="file-lines">
+    ```bash
+    tail -n 20 $PREFIX/var/log/openclaw/current
+    ```
+    
+    Should show recent log entries without critical errors
+  </Accordion>
+</AccordionGroup>
+
+## Service Management Commands
+
+Use these commands to manage your OpenClaw service:
+
+### Check Status
+
+```bash
+sv status openclaw
+```
+
+Shows current state: running, stopped, or restarting.
+
+### Stop Service
+
+```bash
+sv down openclaw
+```
+
+Gracefully stops the service.
+
+### Start Service
+
+```bash
+sv up openclaw
+```
+
+Starts the service if stopped.
+
+### Restart Service
+
+```bash
+sv restart openclaw
+```
+
+Stops and starts the service (useful after configuration changes).
+
+### View Logs
+
+```bash
+# View last 50 lines
+tail -n 50 $PREFIX/var/log/openclaw/current
+
+# Follow logs in real-time
+tail -f $PREFIX/var/log/openclaw/current
+
+# Search logs for errors
+grep -i error $PREFIX/var/log/openclaw/current
+```
+
+## Troubleshooting
+
+### Service won't start
+
+**Check the run script:**
+
+```bash
+cat $PREFIX/var/service/openclaw/run
+```
+
+Ensure it contains:
+```bash
+#!/data/data/com.termux/files/usr/bin/sh
+export PATH=$PREFIX/bin:$PATH
+export TMPDIR=$PREFIX/tmp
+exec openclaw gateway 2>&1
+```
+
+**Check permissions:**
+
+```bash
+ls -la $PREFIX/var/service/openclaw/run
+```
+
+Should be executable (`-rwxr-xr-x`).
+
+**Try starting manually:**
+
+```bash
+openclaw gateway
+```
+
+This runs the gateway in foreground mode and shows errors directly.
+
+### Web UI not accessible
+
+**Verify the service is actually running:**
+
+```bash
+sv status openclaw
+```
+
+**Check if port 18789 is listening:**
+
+```bash
+netstat -an | grep 18789
+```
+
+Should show `LISTEN` on port 18789.
+
+**Try accessing with explicit localhost:**
+
+```
+http://127.0.0.1:18789
+```
+
+### Process keeps getting killed
+
+**Ensure wake lock is active:**
+
+```bash
+termux-wake-lock
+termux-wake-lock status
+```
+
+**Disable battery optimization for Termux:**
+
+1. Go to Android Settings
+2. Apps → Termux
+3. Battery → Unrestricted
+
+**Keep Termux notification visible:**
+
+The Termux persistent notification helps prevent the system from killing the app.
+
+### "Permission denied" when accessing files
+
+**Check TMPDIR:**
+
+```bash
+echo $TMPDIR
+```
+
+Should be `$PREFIX/tmp`, not `/tmp`.
+
+**Verify the path patch was applied:**
+
+```bash
+grep "$PREFIX/tmp/openclaw" $PREFIX/lib/node_modules/openclaw/dist/entry.js
+```
+
+If this returns nothing, the patch wasn't applied. Re-run the setup script.
+
+## Keeping the Service Running
+
+### Automatic startup on Termux launch
+
+Add to `~/.bashrc`:
+
+```bash
+# Start OpenClaw if not already running
+if ! sv status openclaw | grep -q "^run:"; then
+    sv up openclaw
+    termux-wake-lock
+fi
+```
+
+### Using Termux:Boot
+
+Install [Termux:Boot](https://f-droid.org/en/packages/com.termux.boot/) from F-Droid to start OpenClaw when Android boots:
+
+1. Install Termux:Boot
+2. Create `~/.termux/boot/start-openclaw`:
+
+```bash
+#!/data/data/com.termux/files/usr/bin/bash
+termux-wake-lock
+sv up openclaw
+```
+
+3. Make it executable:
+
+```bash
+chmod +x ~/.termux/boot/start-openclaw
+```
+
+## Next Steps
+
+Your OpenClaw installation is complete! Explore these topics:
+
+<CardGroup cols={2}>
+  <Card title="Service Management" icon="sliders" href="/usage/managing-service">
+    Learn how to control and monitor the OpenClaw service
+  </Card>
+  
+  <Card title="Commands Reference" icon="terminal" href="/usage/commands">
+    Explore OpenClaw CLI commands and options
+  </Card>
+  
+  <Card title="Updating OpenClaw" icon="arrow-up" href="/scripts/update-claw">
+    Keep your installation up to date safely
+  </Card>
+  
+  <Card title="Troubleshooting" icon="wrench" href="/troubleshooting/common-issues">
+    Solve common problems
+  </Card>
+</CardGroup>
+
+<Note>
+Congratulations! You now have OpenClaw running on your Android device. Your phone is now a powerful AI assistant and automation hub.
+</Note>

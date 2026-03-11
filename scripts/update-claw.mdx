@@ -1,0 +1,364 @@
+---
+title: Update Script
+description: Safely update OpenClaw while preserving configuration and re-applying Android patches
+---
+
+## Overview
+
+The `update_claw.sh` script safely updates OpenClaw to the latest version while:
+- Preserving your existing configuration
+- Maintaining service setup
+- **Re-applying critical Android patches** that get overwritten during updates
+
+<Warning>
+Never update OpenClaw using `npm install -g openclaw@latest` directly. Always use this script to ensure Android-specific patches are re-applied.
+</Warning>
+
+---
+
+## Why This Script Exists
+
+When you run `npm install -g openclaw@latest`, npm:
+1. Downloads fresh code from the registry
+2. Overwrites `$PREFIX/lib/node_modules/openclaw/`
+3. **Destroys the `/tmp` path patches** applied during setup
+
+Without re-patching, OpenClaw will fail at runtime on Android.
+
+---
+
+## Update Process
+
+The script performs 4 sequential operations:
+
+<Steps>
+  <Step title="Stop the Service">
+    Gracefully shuts down the background service to prevent conflicts
+  </Step>
+  <Step title="Fetch Latest Version">
+    Downloads and installs the latest OpenClaw from npm
+  </Step>
+  <Step title="Re-apply Patches">
+    **CRITICAL**: Patches hardcoded `/tmp` paths again
+  </Step>
+  <Step title="Restart the Service">
+    Brings the service back online with the new version
+  </Step>
+</Steps>
+
+---
+
+## Step-by-Step Breakdown
+
+### 1. Stop the Service
+
+```bash
+sv down openclaw
+```
+
+**Why this matters:**
+- Prevents file conflicts while npm replaces running code
+- Ensures clean shutdown of active connections
+- Avoids corrupted state during the update
+
+**What it does:**
+- Sends SIGTERM to the `openclaw gateway` process
+- Waits for graceful shutdown
+- Marks the service as "down" in runit
+
+---
+
+### 2. Fetch Latest Version
+
+```bash
+npm install -g openclaw@latest
+```
+
+**What happens:**
+- npm queries the registry for the latest version
+- Downloads the package tarball
+- Replaces `$PREFIX/lib/node_modules/openclaw/` entirely
+- Recompiles any native dependencies
+- Updates the `openclaw` binary in `$PREFIX/bin`
+
+<Info>
+This step can take 3-8 minutes depending on the size of the update and your device performance.
+</Info>
+
+---
+
+### 3. Re-apply the Critical Patch
+
+**The Problem:** npm just overwrote `entry.js` with code that has hardcoded `/tmp/openclaw` paths.
+
+**The Solution:**
+
+```bash
+TARGET_FILE="$PREFIX/lib/node_modules/openclaw/dist/entry.js"
+
+if [ -f "$TARGET_FILE" ]; then
+    sed -i "s|/tmp/openclaw|$PREFIX/tmp/openclaw|g" "$TARGET_FILE"
+    echo "Success: Patch re-applied."
+else
+    echo "[!] Warning: entry.js not found. Update might have changed structure."
+fi
+```
+
+**What this does:**
+- Locates the main entry point in the updated installation
+- Replaces **all** occurrences of `/tmp/openclaw` with `$PREFIX/tmp/openclaw`
+- Validates the patch was successful
+
+<Danger>
+**This is the most critical step.** Without it, OpenClaw will crash on startup with errors like:
+```
+Error: ENOENT: no such file or directory, open '/tmp/openclaw/...'
+```
+</Danger>
+
+---
+
+### 4. Restart the Service
+
+```bash
+sv up openclaw
+```
+
+**What this does:**
+- Tells runit to start supervising the service again
+- Executes `$PREFIX/var/service/openclaw/run`
+- Begins logging to `$PREFIX/var/log/openclaw/current`
+
+**Verify success:**
+
+```bash
+sv status openclaw
+```
+
+You should see:
+```
+run: openclaw: (pid 12345) 5s
+```
+
+---
+
+## Usage
+
+### Running the Update
+
+```bash
+./update_claw.sh
+```
+
+<Info>
+Make sure the script is executable:
+```bash
+chmod +x update_claw.sh
+```
+</Info>
+
+### Expected Output
+
+```
+>>> Updating OpenClaw...
+[-] Stopping background service...
+ok: down: openclaw: 0s, normally up
+[-] Fetching latest version from npm...
+[npm output...]
+[-] Re-patching hardcoded /tmp paths...
+    Success: Patch re-applied.
+[-] Restarting service...
+ok: run: openclaw: (pid 12345) 0s
+
+>>> Update Complete! Check status with: sv status openclaw
+```
+
+---
+
+## When to Run Updates
+
+### Recommended Schedule
+
+- **Weekly**: Check for updates if you're using cutting-edge features
+- **Monthly**: Standard maintenance schedule
+- **As needed**: When specific bugs are fixed or features are added
+
+### Checking for Available Updates
+
+Before running the update script, check if a new version is available:
+
+```bash
+npm view openclaw version
+```
+
+Compare with your current version:
+
+```bash
+openclaw --version
+```
+
+---
+
+## Why Patches Must Be Re-applied
+
+### The Root Cause
+
+OpenClaw is developed on traditional Linux systems where `/tmp` is a standard directory. The compiled code in `dist/entry.js` contains these hardcoded paths.
+
+### Why npm Doesn't Preserve Patches
+
+When you run `npm install -g openclaw@latest`:
+
+1. npm **completely replaces** the `node_modules/openclaw/` directory
+2. Your previous modifications (the `sed` patches) are deleted
+3. Fresh code with `/tmp` paths is restored
+
+### The Android Reality
+
+Android's security model doesn't allow apps to access `/tmp`. Termux provides:
+- `$PREFIX/tmp` → `/data/data/com.termux/files/usr/tmp`
+
+This is **writable** and **persistent** within the Termux environment.
+
+<Note>
+This limitation affects all Node.js applications on Android, not just OpenClaw. Any app expecting `/tmp` needs similar patching.
+</Note>
+
+---
+
+## Troubleshooting
+
+### Update fails during npm install
+
+**Possible causes:**
+- Network timeout
+- Insufficient storage
+- Corrupted npm cache
+
+**Solution:**
+
+```bash
+# Clear npm cache
+npm cache clean --force
+
+# Check available storage
+df -h $PREFIX
+
+# Retry update
+./update_claw.sh
+```
+
+---
+
+### Patch warning: "entry.js not found"
+
+The package structure may have changed in a new version.
+
+**Diagnosis:**
+
+```bash
+find $PREFIX/lib/node_modules/openclaw -name "*.js" -path "*/dist/*" | head -10
+```
+
+**Manual patch:**
+
+If the entry point moved to a different file:
+
+```bash
+sed -i "s|/tmp/openclaw|$PREFIX/tmp/openclaw|g" /path/to/new/entrypoint.js
+```
+
+Report the structure change to the OpenClaw team so the update script can be fixed.
+
+---
+
+### Service won't start after update
+
+**Check logs:**
+
+```bash
+tail -50 $PREFIX/var/log/openclaw/current
+```
+
+**Common errors:**
+
+#### "ENOENT: no such file or directory, open '/tmp/openclaw/...'"
+
+The patch didn't apply. Manually run:
+
+```bash
+sed -i "s|/tmp/openclaw|$PREFIX/tmp/openclaw|g" \
+  $PREFIX/lib/node_modules/openclaw/dist/entry.js
+sv up openclaw
+```
+
+#### "Error: Cannot find module..."
+
+Dependencies may be broken. Reinstall:
+
+```bash
+npm install -g openclaw@latest --force
+# Then re-patch
+sed -i "s|/tmp/openclaw|$PREFIX/tmp/openclaw|g" \
+  $PREFIX/lib/node_modules/openclaw/dist/entry.js
+sv up openclaw
+```
+
+#### Service keeps restarting
+
+Check for crashes:
+
+```bash
+sv status openclaw
+```
+
+If you see the PID changing rapidly, there's a runtime error. Check logs.
+
+---
+
+### Configuration was reset
+
+OpenClaw stores configuration in:
+```
+$HOME/.config/openclaw/
+```
+
+This directory is **never** touched by updates. If your config disappeared:
+
+```bash
+ls -la $HOME/.config/openclaw/
+```
+
+If empty, you'll need to run `openclaw onboard` again.
+
+---
+
+## Advanced: Manual Update Process
+
+If you need to update without the script:
+
+```bash
+# 1. Stop service
+sv down openclaw
+
+# 2. Update via npm
+npm install -g openclaw@latest
+
+# 3. Re-patch
+sed -i "s|/tmp/openclaw|$PREFIX/tmp/openclaw|g" \
+  $PREFIX/lib/node_modules/openclaw/dist/entry.js
+
+# 4. Restart
+sv up openclaw
+
+# 5. Verify
+sv status openclaw
+```
+
+---
+
+## Related Pages
+
+- [Setup Script](/scripts/setup-claw) - Initial installation and Android workarounds
+- [Service Management](/usage/managing-service) - Managing the OpenClaw service
+- [Environment Fixes](/troubleshooting/environment-fixes) - Understanding environment configuration

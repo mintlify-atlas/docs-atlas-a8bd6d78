@@ -1,0 +1,102 @@
+---
+title: Prerequisites
+description: Requirements before installing OpenClaw on Android
+---
+
+Before installing OpenClaw on your Android device, ensure you have the following requirements in place.
+
+## Required Applications
+
+### Termux (from F-Droid)
+
+<Warning>
+  **Do NOT use the Google Play version of Termux.** The Google Play version is outdated and incompatible with OpenClaw Android. You must download Termux from F-Droid.
+</Warning>
+
+Download and install **Termux** from [F-Droid](https://f-droid.org/en/packages/com.termux/).
+
+**Why F-Droid?**
+- The Google Play Store version of Termux is no longer maintained
+- The F-Droid version receives regular updates and security patches
+- OpenClaw Android requires features and packages only available in the F-Droid version
+- Package repositories are properly maintained for the F-Droid version
+
+### Termux:API App
+
+<Warning>
+  The **Termux:API** app is **required** for OpenClaw's mobile features. Without it, hardware features will be significantly limited.
+</Warning>
+
+Install the [Termux:API app](https://f-droid.org/en/packages/com.termux.api/) from F-Droid.
+
+**What Termux:API Enables:**
+- Hardware notifications
+- Battery status monitoring
+- Clipboard access
+- GPS location data
+- Camera and microphone access
+- Accelerometer and sensor data
+- Network information
+
+Without Termux:API, OpenClaw cannot access these hardware features, severely limiting its capabilities as an IoT device and sensor hub.
+
+## Hardware Requirements
+
+### Android Device
+- **Android version**: Android 7.0 (Nougat) or higher recommended
+- **Architecture**: ARM64 or ARMv7 processor (most modern Android devices)
+- **RAM**: At least 2GB recommended for smooth operation
+- **CPU**: Keep the device plugged in or use `termux-wake-lock` to prevent throttling
+
+### Storage Requirements
+
+<Note>
+  Ensure you have sufficient storage space before installation. The setup process will install Node.js, Python, build tools, and OpenClaw itself.
+</Note>
+
+**Estimated Storage Needs:**
+- **Termux base packages**: ~500MB
+- **Node.js and dependencies**: ~300MB
+- **Build tools** (Git, Python, CMake, Ninja): ~400MB
+- **OpenClaw and modules**: ~200MB
+- **Working space**: ~200MB
+- **Total recommended free space**: At least **2GB**
+
+## Network Requirements
+
+- **Internet connection**: Required during installation to download packages and dependencies
+- **Wi-Fi recommended**: Installation downloads hundreds of megabytes of data
+- **Stable connection**: The installation process can take 15-30 minutes depending on your device and network speed
+
+## Optional but Recommended
+
+### Physical Accessories
+- **Charger/Power adapter**: Keep the device plugged in during installation and operation
+- **Stand or mount**: If using the device as a permanent IoT hub or automation server
+- **External storage**: For logs and data if you plan to run long-term monitoring tasks
+
+### Knowledge Requirements
+
+<Note>
+  Basic familiarity with command-line interfaces is helpful but not strictly required. The installation is largely automated.
+</Note>
+
+Useful skills:
+- Basic Linux/Unix command-line navigation
+- Understanding of package managers
+- Familiarity with terminal applications
+
+## Checklist
+
+Before proceeding to installation, verify:
+
+- [ ] Termux installed from F-Droid (NOT Google Play)
+- [ ] Termux:API app installed from F-Droid
+- [ ] At least 2GB of free storage space
+- [ ] Stable internet connection (Wi-Fi preferred)
+- [ ] Device charger available
+- [ ] Both apps have necessary permissions granted
+
+## Next Steps
+
+Once you've verified all prerequisites, proceed to the [Quickstart Guide](/quickstart) to install OpenClaw on your Android device.

@@ -1,0 +1,210 @@
+---
+title: "OpenClaw Onboarding"
+description: "Configure OpenClaw after installation with critical Android-specific considerations"
+---
+
+## Overview
+
+After completing the automated setup, you must run the `openclaw onboard` command to configure your OpenClaw installation. This process sets up your credentials, preferences, and initial configuration.
+
+<Warning>
+**CRITICAL:** During onboarding, you will be asked to install a daemon or system service. On Android, you **must say NO** to this option. The setup script has already configured a compatible service manager.
+</Warning>
+
+## Running Onboarding
+
+Start the onboarding process with:
+
+```bash
+openclaw onboard
+```
+
+The interactive CLI will guide you through several configuration steps.
+
+## Why You Must Reject Daemon Installation
+
+### The Android Limitation
+
+OpenClaw's standard onboarding process offers to install itself as a system service using **systemd**, which is the service manager used on most Linux distributions. However, Android does not support systemd.
+
+**Android's architecture:**
+- Uses `init` (not systemd) for system services
+- Termux operates in userspace without root access
+- Cannot install or manage systemd services
+
+### What We've Already Done
+
+The `setup_claw.sh` script already configured a background service using **runit** (via `termux-services`), which is the Android-compatible service manager.
+
+```bash
+# Service already created at:
+$PREFIX/var/service/openclaw/run
+
+# Log management configured at:
+$PREFIX/var/service/openclaw/log/run
+```
+
+<Info>
+Runit is a lightweight, cross-platform service supervision suite that works perfectly in Termux's non-root environment.
+</Info>
+
+### What Happens If You Say Yes
+
+If you accidentally accept the daemon installation:
+
+1. OpenClaw will attempt to use systemd
+2. The installation will fail (systemd not available)
+3. You'll need to reconfigure manually
+
+**If this happens:**
+
+```bash
+# Stop any conflicting processes
+sv down openclaw
+
+# Run onboarding again
+openclaw onboard
+
+# This time, reject the daemon installation
+```
+
+## Onboarding Steps
+
+During the onboarding process, you'll be prompted for:
+
+<Steps>
+  <Step title="Account Configuration">
+    Provide your OpenClaw credentials or create a new account:
+    
+    - Email address
+    - Password
+    - Organization name (if applicable)
+    
+    <Tip>
+    If you don't have an OpenClaw account yet, the onboarding process will guide you through creating one.
+    </Tip>
+  </Step>
+
+  <Step title="Gateway Configuration">
+    Configure how the OpenClaw gateway operates:
+    
+    - **Port**: Default is 18789 (recommended to keep default)
+    - **Host**: Default is localhost/127.0.0.1
+    - **Auto-start**: Choose whether to start on boot
+    
+    <Info>
+    On Android, you'll manually control the service using `sv up/down openclaw` commands.
+    </Info>
+  </Step>
+
+  <Step title="Daemon/Service Installation">
+    **This is the critical step.**
+    
+    When prompted:
+    ```
+    Would you like to install OpenClaw as a system service?
+    Install daemon/service? [Y/n]
+    ```
+    
+    **Type:** `n` or `no` and press Enter.
+    
+    <Warning>
+    **DO NOT accept** this option. Android does not support systemd. The runit service is already configured for you.
+    </Warning>
+  </Step>
+
+  <Step title="Additional Configuration">
+    Complete any remaining configuration:
+    
+    - API integrations
+    - Default settings
+    - Feature preferences
+    
+    Accept the defaults for most options unless you have specific requirements.
+  </Step>
+
+  <Step title="Configuration Complete">
+    Onboarding will confirm successful configuration:
+    
+    ```
+    ✓ Configuration saved
+    ✓ OpenClaw is ready to use
+    ```
+    
+    Your configuration is saved to `~/.openclaw/config.json` (or similar path).
+  </Step>
+</Steps>
+
+## Verification
+
+After onboarding completes, verify your configuration:
+
+```bash
+# Check that OpenClaw binary is accessible
+which openclaw
+
+# Verify configuration exists
+ls -la ~/.openclaw/
+
+# Check service is enabled (but not running yet)
+sv status openclaw
+```
+
+Expected output for `sv status openclaw`:
+```
+down: openclaw: 0s, normally up
+```
+
+<Info>
+The service showing "down" is normal. You'll start it in the next step after reloading your shell environment.
+</Info>
+
+## Common Issues
+
+### "Command not found: openclaw"
+
+If the `openclaw` command isn't found:
+
+```bash
+# Check if npm global bin is in PATH
+echo $PATH | grep "$PREFIX/bin"
+
+# Reload shell configuration
+source ~/.bashrc
+
+# Try again
+openclaw --version
+```
+
+### "Permission denied" errors
+
+Ensure environment variables are set:
+
+```bash
+# Check temporary directory configuration
+echo $TMPDIR
+# Should output: /data/data/com.termux/files/usr/tmp
+
+# If empty, reload shell
+source ~/.bashrc
+```
+
+### Accidentally installed daemon
+
+If you accepted the daemon installation:
+
+```bash
+# Remove any systemd-related files (they won't work anyway)
+rm -rf ~/.config/systemd/user/openclaw.service
+
+# The runit service is still configured correctly
+# Just proceed to the finalization step
+```
+
+## Next Steps
+
+With onboarding complete, you're ready to start the OpenClaw service:
+
+<Card title="Finalize Installation" icon="check" href="/installation/finalize">
+  Start the service and access the OpenClaw web UI
+</Card>

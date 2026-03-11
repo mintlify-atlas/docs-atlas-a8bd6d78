@@ -1,0 +1,224 @@
+---
+title: "Installation Setup"
+description: "Complete guide to installing OpenClaw on Android using the automated setup script"
+---
+
+## Overview
+
+The `setup_claw.sh` script automates the entire OpenClaw installation process on Android devices via Termux. It handles system dependencies, environment configuration, path patching, and service setup in six main stages.
+
+<Info>
+This installation process takes 5-10 minutes depending on your device and network speed.
+</Info>
+
+## Prerequisites
+
+Before running the setup script, ensure you have:
+
+- **Termux** from [F-Droid](https://f-droid.org/en/packages/com.termux/) (not Google Play Store)
+- **Termux:API** app from [F-Droid](https://f-droid.org/en/packages/com.termux.api/)
+- Stable internet connection
+- At least 500MB of free storage
+
+<Warning>
+The Google Play Store version of Termux is outdated and incompatible. Always use the F-Droid version.
+</Warning>
+
+## Running the Setup Script
+
+Execute the automated installation with this one-liner:
+
+```bash
+pkg install -y git && git clone https://github.com/irtiq7/OpenClaw-Android.git ~/openclaw-android-setup && cd ~/openclaw-android-setup && chmod +x *.sh && ./setup_claw.sh
+```
+
+## Installation Stages
+
+The setup script performs six critical stages:
+
+<Steps>
+  <Step title="Dependencies & System Preparation">
+    Updates the system and installs all required packages:
+    
+    ```bash setup_claw.sh:20-23
+    pkg update -y && pkg upgrade -y
+    # Core tools + Build tools (for compiling AI engine) + Hardware APIs + Service Manager
+    pkg install -y nodejs-lts git build-essential python cmake clang ninja pkg-config binutils termux-api termux-services proot tmux nano
+    ```
+    
+    **Installed packages:**
+    - **nodejs-lts**: JavaScript runtime for OpenClaw
+    - **git**: Version control
+    - **build-essential**: C/C++ compiler toolchain
+    - **python, cmake, clang, ninja**: Build system tools
+    - **pkg-config, binutils**: Development utilities
+    - **termux-api**: Hardware access (GPS, camera, sensors)
+    - **termux-services**: Background service management (runit)
+    - **proot, tmux, nano**: System utilities
+  </Step>
+
+  <Step title="Environment Variables Configuration">
+    Fixes critical path issues by configuring temporary directory environment variables:
+    
+    ```bash setup_claw.sh:26-47
+    # Create the correct temp directories
+    mkdir -p "$PREFIX/tmp"
+    mkdir -p "$HOME/tmp"
+    
+    # Clean up old/duplicate entries in .bashrc
+    sed -i '/export TMPDIR=/d' ~/.bashrc
+    sed -i '/export TMP=/d' ~/.bashrc
+    sed -i '/export TEMP=/d' ~/.bashrc
+    
+    # Add persistent exports to .bashrc
+    echo 'export TMPDIR="$PREFIX/tmp"' >> ~/.bashrc
+    echo 'export TMP="$PREFIX/tmp"' >> ~/.bashrc
+    echo 'export TEMP="$PREFIX/tmp"' >> ~/.bashrc
+    
+    # Export for THIS session right now
+    export TMPDIR="$PREFIX/tmp"
+    export TMP="$PREFIX/tmp"
+    export TEMP="$PREFIX/tmp"
+    ```
+    
+    **Why this matters:**
+    
+    Android/Termux doesn't have access to the standard `/tmp` directory. This configuration redirects all temporary file operations to `$PREFIX/tmp` (typically `/data/data/com.termux/files/usr/tmp`), preventing "Permission Denied" errors.
+  </Step>
+
+  <Step title="Node-GYP Workaround">
+    Applies a critical fix for Node.js native module compilation:
+    
+    ```bash setup_claw.sh:50-53
+    mkdir -p ~/.gyp
+    # Create a dummy config so build tools don't panic looking for Android NDK
+    echo "{'variables':{'android_ndk_path':''}}" > ~/.gyp/include.gypi
+    ```
+    
+    **Purpose:**
+    
+    Node-GYP (the Node.js native addon build tool) expects an Android NDK when running on Android. This dummy configuration prevents build crashes during OpenClaw's installation by providing a placeholder NDK path.
+  </Step>
+
+  <Step title="OpenClaw Installation">
+    Installs OpenClaw globally via npm:
+    
+    ```bash setup_claw.sh:56-58
+    # Install globally
+    npm install -g openclaw@latest
+    ```
+    
+    This step typically takes 5-10 minutes as npm downloads and compiles all dependencies.
+    
+    <Tip>
+    The installation is global (`-g` flag), making the `openclaw` command available system-wide.
+    </Tip>
+  </Step>
+
+  <Step title="Hardcoded Path Patching">
+    Patches OpenClaw's source code to use Termux-compatible paths:
+    
+    ```bash setup_claw.sh:61-70
+    # We must replace the hardcoded '/tmp/openclaw' with our valid Termux path
+    TARGET_FILE="$PREFIX/lib/node_modules/openclaw/dist/entry.js"
+    
+    if [ -f "$TARGET_FILE" ]; then
+        sed -i "s|/tmp/openclaw|$PREFIX/tmp/openclaw|g" "$TARGET_FILE"
+        echo -e "${GREEN}    Success: Patched entry.js${NC}"
+    else
+        echo -e "${RED}    WARNING: entry.js not found. Installation structure might have changed.${NC}"
+    fi
+    ```
+    
+    **Critical for Android:**
+    
+    OpenClaw's default codebase assumes access to `/tmp/openclaw`, which doesn't exist in Termux. This sed command replaces all instances with `$PREFIX/tmp/openclaw`, ensuring file operations work correctly.
+    
+    <Warning>
+    This patch is reapplied during updates using `update_claw.sh` because npm updates overwrite the patched files.
+    </Warning>
+  </Step>
+
+  <Step title="Service Setup">
+    Configures OpenClaw as a persistent background service using runit:
+    
+    ```bash setup_claw.sh:73-118
+    SERVICE_DIR="$PREFIX/var/service/openclaw"
+    LOG_DIR="$PREFIX/var/log/openclaw"
+    
+    mkdir -p "$SERVICE_DIR/log"
+    mkdir -p "$LOG_DIR"
+    
+    # Create the RUN script (The Brain)
+    cat <<EOF > "$SERVICE_DIR/run"
+    #!/data/data/com.termux/files/usr/bin/sh
+    # 1. We must explicitly set PATH so the service finds 'node'
+    export PATH=$PREFIX/bin:\$PATH
+    # 2. We must explicitly set TMPDIR so it can write files
+    export TMPDIR=$PREFIX/tmp
+    # 3. Start the gateway
+    exec openclaw gateway 2>&1
+    EOF
+    
+    # Create the LOG script
+    cat <<EOF > "$SERVICE_DIR/log/run"
+    #!/data/data/com.termux/files/usr/bin/sh
+    exec svlogd -tt $LOG_DIR
+    EOF
+    
+    # Make them executable
+    chmod +x "$SERVICE_DIR/run"
+    chmod +x "$SERVICE_DIR/log/run"
+    
+    # Enable the service (but don't start yet)
+    sed -i '/export SVDIR=/d' ~/.bashrc
+    echo 'export SVDIR="$PREFIX/var/service"' >> ~/.bashrc
+    export SVDIR="$PREFIX/var/service"
+    
+    # Ensure runit is supervising
+    service-daemon stop >/dev/null 2>&1 || true
+    service-daemon start >/dev/null 2>&1 || true
+    
+    sv-enable openclaw
+    ```
+    
+    **What this creates:**
+    
+    - **Service directory**: `$PREFIX/var/service/openclaw`
+    - **Run script**: Starts the OpenClaw gateway with proper environment
+    - **Log script**: Captures all output to `$PREFIX/var/log/openclaw/current`
+    - **Runit supervision**: Ensures the service restarts if it crashes
+    
+    <Info>
+    The service is enabled but **not started yet**. You'll start it manually after onboarding.
+    </Info>
+  </Step>
+</Steps>
+
+## Post-Installation Output
+
+After successful installation, the script displays important instructions:
+
+```
+=============================================
+       SETUP COMPLETE - READ CAREFULLY
+=============================================
+[!] WARNING FOR ONBOARDING:
+    1. Run: openclaw onboard
+    2. When asked to install a Daemon/Service: SAY NO / SKIP
+       (Android does not support systemd. We already installed the service for you manually.)
+
+[+] AFTER ONBOARDING:
+    1. Reload shell:  source ~/.bashrc
+    2. Start Service: sv up openclaw
+    3. Lock Process:  termux-wake-lock (Required to keep it running)
+    4. Access UI:     http://localhost:18789
+```
+
+## Next Steps
+
+With the setup complete, you're ready to proceed to the onboarding process:
+
+<Card title="OpenClaw Onboarding" icon="rocket" href="/installation/onboarding">
+  Configure OpenClaw and complete the initial setup
+</Card>

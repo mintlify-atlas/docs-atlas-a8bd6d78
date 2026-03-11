@@ -1,0 +1,63 @@
+---
+title: Introduction
+description: Run OpenClaw AI assistant directly on Android devices using Termux without root access
+---
+
+## What is OpenClaw Android?
+
+OpenClaw Android is a collection of specialized scripts that allow you to install and run **OpenClaw** directly on any Android device using **Termux**. No root access required. No complicated hacks. Just a clean, automated setup process.
+
+This project transforms an old Android phone or tablet into a fully capable AI-powered IoT device, perfect for smart home automation, voice assistants, offline AI tasks, and edge computing experiments.
+
+## Why Use OpenClaw on Android?
+
+<CardGroup cols={2}>
+  <Card title="Local AI Power" icon="microchip">
+    Run OpenClaw directly on the device for smart home flows, voice assistants, and offline AI tasks without depending on cloud services.
+  </Card>
+  
+  <Card title="Rich Hardware Access" icon="mobile">
+    Leverage GPS, camera, microphone, accelerometer, battery stats, and network stack. Your phone becomes a sensor hub or IoT gateway.
+  </Card>
+  
+  <Card title="Persistent Background Service" icon="circle-play">
+    OpenClaw keeps running even when the Termux app is closed, making it ideal for long-running automations and monitoring.
+  </Card>
+  
+  <Card title="Repurpose Old Devices" icon="recycle">
+    Turn unused phones into AI hubs, IoT controllers, automation servers, or remote monitoring nodes.
+  </Card>
+</CardGroup>
+
+## Key Features
+
+- **No Root Required**: Clean installation using Termux alone
+- **One-Liner Installation**: Fully automated setup process
+- **Service Management**: Background service support using termux-services (runit)
+- **Automatic Path Fixes**: Handles hardcoded paths and Android-specific workarounds
+- **Easy Updates**: Dedicated update script that preserves patches
+- **Web UI Access**: Control OpenClaw through the browser at `http://localhost:18789`
+
+## How It Works
+
+OpenClaw is designed for server environments, but these scripts bridge the gap for Android mobile hardware by:
+
+1. **Fixing Hardcoded Paths**: Redirects `/tmp/openclaw` to Termux-accessible locations
+2. **Managing Services Without Root**: Uses `termux-services` (runit) for persistent background execution
+3. **Applying NodeJS Workarounds**: Handles Android NDK compilation issues with native modules
+4. **Environment Configuration**: Sets up proper `TMPDIR` and `TEMP` variables to prevent permission errors
+
+## Architecture Overview
+
+The installation consists of two main scripts:
+
+- **`setup_claw.sh`**: The installer that handles system prep, environment fixes, NDK workarounds, path patches, and service setup
+- **`update_claw.sh`**: The updater that safely updates OpenClaw while preserving Android-specific patches
+
+<Note>
+  OpenClaw runs as a background service managed by `termux-services`, allowing it to continue running even when you close the Termux app.
+</Note>
+
+## Next Steps
+
+Ready to get started? First, check the [prerequisites](/prerequisites) to ensure your device meets the requirements, then follow the [quickstart guide](/quickstart) to install OpenClaw on your Android device.

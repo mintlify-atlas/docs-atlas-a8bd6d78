@@ -1,97 +1,131 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "OpenClaw Android"
+description: "Run OpenClaw AI assistant on Android devices without root access"
 ---
 
-## Setting up
+<div style={{
+  background: 'linear-gradient(135deg, #24345b 0%, #dcba32 100%)',
+  padding: '3rem 2rem',
+  borderRadius: '12px',
+  marginBottom: '2rem',
+  color: 'white'
+}}>
+  <h1 style={{ fontSize: '3rem', fontWeight: '700', marginBottom: '1rem', color: 'white' }}>
+    OpenClaw Android
+  </h1>
+  <p style={{ fontSize: '1.25rem', marginBottom: '2rem', opacity: 0.95 }}>
+    Transform your Android device into a powerful AI assistant and IoT hub with OpenClaw
+  </p>
+  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+    <a href="/quickstart" style={{
+      background: '#ffffff',
+      color: '#24345b',
+      padding: '0.75rem 1.5rem',
+      borderRadius: '4px',
+      textDecoration: 'none',
+      fontWeight: '600',
+      display: 'inline-block'
+    }}>
+      Get Started →
+    </a>
+    <a href="https://github.com/irtiq7/OpenClaw-Android" style={{
+      background: 'transparent',
+      color: '#ffffff',
+      padding: '0.75rem 1.5rem',
+      borderRadius: '4px',
+      border: '2px solid rgba(255,255,255,0.3)',
+      textDecoration: 'none',
+      fontWeight: '600',
+      display: 'inline-block'
+    }}>
+      View on GitHub
+    </a>
+  </div>
+</div>
 
-Get your documentation site up and running in minutes.
+## What is OpenClaw Android?
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
+OpenClaw Android allows you to install and run the OpenClaw AI assistant directly on any Android device using Termux. No root access required, no complex configurations—just a simple installation script that turns your phone or tablet into a fully capable AI-powered automation hub.
+
+Perfect for smart home flows, voice assistants, offline AI tasks, edge computing experiments, and IoT projects.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="No Root Required" icon="unlock">
+    Works on any Android device without root access or system modifications
+  </Card>
+  <Card title="One-Line Install" icon="terminal">
+    Complete installation with a single command in Termux
+  </Card>
+  <Card title="Background Service" icon="server">
+    Runs persistently in the background with termux-services
+  </Card>
+  <Card title="Hardware Access" icon="mobile">
+    Use GPS, camera, mic, accelerometer, and other sensors
+  </Card>
+  <Card title="Safe Updates" icon="arrows-rotate">
+    Update script preserves all your configurations
+  </Card>
+  <Card title="Web Interface" icon="browser">
+    Access the full OpenClaw UI from your device browser
+  </Card>
+</CardGroup>
+
+## Quick Start
+
+Get OpenClaw running on your Android device in under 5 minutes:
+
+<Steps>
+  <Step title="Install Termux">
+    Download Termux from [F-Droid](https://f-droid.org/en/packages/com.termux/) (not Google Play)
+  </Step>
+  <Step title="Run Installation">
+    Execute the one-liner installation command in Termux
+    ```bash
+    pkg install -y git && git clone https://github.com/irtiq7/OpenClaw-Android.git ~/openclaw-android-setup && cd ~/openclaw-android-setup && chmod +x *.sh && ./setup_claw.sh
+    ```
+  </Step>
+  <Step title="Complete Onboarding">
+    Follow the onboarding prompts and start using OpenClaw
+  </Step>
+</Steps>
+
+<Card title="Full Installation Guide" icon="book" href="/installation/setup">
+  Get detailed step-by-step instructions for installing OpenClaw on Android
 </Card>
 
-## Make it yours
+## Use Cases
 
-Design a docs site that looks great and empowers your users.
+<CardGroup cols={3}>
+  <Card title="IoT Gateway" icon="wifi" href="/use-cases/iot-gateway">
+    Turn old phones into smart home controllers and sensor hubs
+  </Card>
+  <Card title="Automation" icon="robot" href="/use-cases/automation">
+    Run automated workflows and AI tasks on the edge
+  </Card>
+  <Card title="Edge Computing" icon="microchip" href="/use-cases/edge-computing">
+    Deploy local AI processing without cloud dependencies
+  </Card>
+</CardGroup>
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
+## How It Works
 
-## Create beautiful pages
+OpenClaw Android provides specialized scripts that bridge the gap between OpenClaw's server-focused design and Android's mobile environment:
 
-Everything you need to create world-class documentation.
+- **Automatic path patching** for Android compatibility
+- **Environment fixes** for Termux-specific requirements
+- **Node.js workarounds** for Android NDK limitations
+- **Service management** using runit for background operation
+- **Wake-lock support** to prevent process termination
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+## Community & Support
 
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<CardGroup cols={2}>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/irtiq7/OpenClaw-Android">
+    View source code, report issues, and contribute
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/troubleshooting/common-issues">
+    Find solutions to common installation and runtime issues
+  </Card>
+</CardGroup>

@@ -1,0 +1,211 @@
+---
+title: Web Interface
+description: Access and use the OpenClaw web UI on your Android device
+---
+
+OpenClaw provides a web-based interface for managing workflows, monitoring tasks, and interacting with your AI assistant directly from your mobile browser.
+
+## Accessing the Web UI
+
+Once the OpenClaw service is running, access the interface at:
+
+```
+http://localhost:18789
+```
+
+Open this URL in any browser on your Android device (Chrome, Firefox, Brave, etc.).
+
+<Tip>
+Bookmark this URL for quick access. You can also add it to your home screen for app-like access:
+
+1. Open the URL in your browser
+2. Tap the browser menu (⋮)
+3. Select "Add to Home screen"
+4. The web UI will now appear as an icon on your launcher
+</Tip>
+
+## What the Web UI Provides
+
+The OpenClaw web interface gives you full control over:
+
+### Workflow Management
+- Create and edit automation workflows
+- View workflow execution history
+- Monitor running tasks in real-time
+- Debug and troubleshoot automations
+
+### AI Assistant Interaction
+- Chat with your AI assistant
+- Execute commands and queries
+- Access device sensors and APIs
+- Test integrations and capabilities
+
+### System Monitoring
+- View service status and uptime
+- Check resource usage (CPU, memory)
+- Review logs and error messages
+- Monitor scheduled tasks
+
+### Configuration
+- Manage API keys and credentials
+- Configure integrations and plugins
+- Adjust service settings
+- Control automation triggers
+
+## Mobile Browser Considerations
+
+Since you're running on Android, keep these mobile-specific tips in mind:
+
+### Screen Size
+
+The web UI is designed for desktop browsers but is generally usable on mobile:
+- Use landscape orientation for better visibility on complex pages
+- Zoom in/out as needed using pinch gestures
+- Some tables or wide layouts may require horizontal scrolling
+
+### Background Behavior
+
+<Warning>
+If you navigate away from the browser or switch apps:
+- The web page may pause or reload
+- Active operations should continue on the server
+- Real-time updates may disconnect and reconnect
+
+The OpenClaw **service** continues running in the background (if `termux-wake-lock` is active), even if the browser is closed.
+</Warning>
+
+### Touch Interactions
+- Tap replaces click
+- Long-press may open context menus
+- Drag and drop may work differently than desktop
+- Some keyboard shortcuts won't be available
+
+### Browser Choice
+
+Recommended browsers for best compatibility:
+- **Chrome**: Full feature support, best performance
+- **Firefox**: Good privacy, works well
+- **Brave**: Privacy-focused, compatible
+
+Avoid older or minimal browsers that may not support modern web features.
+
+## Network Access from Other Devices
+
+By default, OpenClaw binds to `localhost` (127.0.0.1), meaning only the Android device can access it. To access from other devices on your network:
+
+### Find Your Android Device's IP
+
+In Termux:
+
+```bash
+ifconfig wlan0 | grep 'inet '
+```
+
+Or:
+
+```bash
+termux-wifi-connectioninfo | grep -i ip
+```
+
+Look for an address like `192.168.1.XXX`.
+
+### Access from Another Device
+
+If OpenClaw is configured to bind to `0.0.0.0` or your device's IP, you can access it from other devices:
+
+```
+http://192.168.1.XXX:18789
+```
+
+Replace `192.168.1.XXX` with your Android device's actual IP address.
+
+<Note>
+Network access depends on your OpenClaw configuration. By default, it may only listen on localhost for security. Check your configuration files or startup logs to confirm the binding address.
+</Note>
+
+## Security Considerations
+
+<Warning>
+The web UI provides full access to OpenClaw's capabilities, including:
+- File system access
+- Command execution
+- API credentials
+- Automation controls
+
+**Always ensure**:
+- You trust the network you're connected to
+- Authentication is enabled if exposing to other devices
+- You're not accessing it over public WiFi without VPN
+- Sensitive credentials are properly protected
+</Warning>
+
+### Localhost-Only Access
+
+For maximum security, keep the default localhost binding:
+- Only accessible from the Android device itself
+- No network exposure
+- Immune to network-based attacks
+
+### Network Exposure
+
+If you enable network access:
+- Use a strong password/authentication
+- Consider using a VPN (WireGuard, Tailscale)
+- Don't expose to the internet directly
+- Only use on trusted local networks
+
+### HTTPS
+
+The default setup uses HTTP (unencrypted). For sensitive operations:
+- Keep access localhost-only, or
+- Set up a reverse proxy with SSL/TLS
+- Use a VPN for remote access instead of port forwarding
+
+## Troubleshooting Web UI Access
+
+### Cannot Access http://localhost:18789
+
+1. **Verify the service is running:**
+   ```bash
+   sv status openclaw
+   ```
+   Should show "run" status.
+
+2. **Check if port 18789 is listening:**
+   ```bash
+   netstat -tuln | grep 18789
+   ```
+   Or:
+   ```bash
+   ss -tuln | grep 18789
+   ```
+
+3. **Check service logs for errors:**
+   ```bash
+   tail -f $PREFIX/var/log/openclaw/current
+   ```
+
+### Page Loads But Shows Errors
+
+- Check browser console for JavaScript errors (Chrome: Menu → More Tools → Developer Tools → Console)
+- Try clearing browser cache and reloading
+- Verify your OpenClaw version is up to date
+- Check logs for backend errors
+
+### Connection Keeps Dropping
+
+- Ensure `termux-wake-lock` is active
+- Check if Android is putting Termux to sleep
+- Verify WiFi is stable and not in power-saving mode
+- Try a different browser
+
+### Cannot Access from Other Devices
+
+- Verify both devices are on the same network
+- Check firewall settings on your Android device
+- Confirm OpenClaw is binding to the correct network interface
+- Ensure the port (18789) isn't blocked
+
+<Tip>
+For detailed configuration options and advanced networking setup, check the OpenClaw documentation or your configuration files created during onboarding.
+</Tip>

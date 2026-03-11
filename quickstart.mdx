@@ -1,80 +1,179 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get OpenClaw running on your Android device in minutes
 ---
 
-## Get started in three steps
-
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+This guide will walk you through installing and running OpenClaw on your Android device using the automated one-liner installation.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  Make sure you've completed all [prerequisites](/prerequisites) before starting, especially installing Termux and Termux:API from F-Droid.
+</Note>
+
+## One-Liner Installation
+
+<Steps>
+  <Step title="Open Termux">
+    Launch the Termux app on your Android device. You should see a terminal prompt.
+  </Step>
+
+  <Step title="Run the Installation Command">
+    Copy and paste the following command into Termux and press Enter:
+
+    ```bash
+    pkg install -y git && git clone https://github.com/irtiq7/OpenClaw-Android.git ~/openclaw-android-setup && cd ~/openclaw-android-setup && chmod +x *.sh && ./setup_claw.sh
+    ```
+
+    **What this does:**
+    - Installs Git
+    - Clones the OpenClaw-Android repository
+    - Makes scripts executable
+    - Runs the automated setup script
+
+    <Warning>
+      The installation process will take **15-30 minutes** depending on your device and internet speed. Keep your device plugged in and the screen on.
+    </Warning>
+  </Step>
+
+  <Step title="Wait for Installation to Complete">
+    The `setup_claw.sh` script will automatically:
+    - Install Node.js, Python, Git, CMake, Ninja, and build tools
+    - Configure environment variables (`TMPDIR`, `TEMP`)
+    - Apply NDK workarounds for Android
+    - Patch hardcoded paths in OpenClaw
+    - Set up the background service using termux-services
+
+    You'll see progress messages as each component is installed. Do not close Termux during this process.
+  </Step>
+
+  <Step title="Run OpenClaw Onboarding">
+    After the setup script completes, run the onboarding process:
+
+    ```bash
+    openclaw onboard
+    ```
+
+    Follow the interactive prompts to configure your OpenClaw instance.
+
+    <Warning>
+      **CRITICAL**: When asked if you want to install a "Daemon" or "System Service", **SAY NO**. The setup script has already configured service management using a method compatible with Android.
+    </Warning>
+  </Step>
+
+  <Step title="Finalize the Installation">
+    After onboarding completes, run these commands to start OpenClaw:
+
+    ```bash
+    source ~/.bashrc
+    sv up openclaw
+    termux-wake-lock
+    ```
+
+    **What each command does:**
+    - `source ~/.bashrc`: Reloads your shell configuration
+    - `sv up openclaw`: Starts the OpenClaw background service
+    - `termux-wake-lock`: Keeps the CPU awake so OpenClaw doesn't get killed when you minimize Termux
+
+    <Note>
+      The `termux-wake-lock` command is **required** to keep OpenClaw running in the background. Without it, Android may kill the process when you minimize the app.
+    </Note>
+  </Step>
+</Steps>
+
+## Accessing the Web UI
+
+Once OpenClaw is running, you can access the web interface:
+
+1. Open any browser on your Android device
+2. Navigate to: `http://localhost:18789`
+3. You should see the OpenClaw web interface
+
+<Note>
+  The web UI is only accessible from the same device. To access it from other devices on your network, you'll need to configure network settings.
+</Note>
+
+## Verification Steps
+
+Verify that OpenClaw is running correctly:
+
+<Steps>
+  <Step title="Check Service Status">
+    ```bash
+    sv status openclaw
+    ```
+
+    You should see output indicating the service is running (e.g., `run: openclaw: ...`).
+  </Step>
+
+  <Step title="View Logs">
+    ```bash
+    tail -f $PREFIX/var/log/openclaw/current
+    ```
+
+    Check for any errors in the logs. Press `Ctrl+C` to exit the log viewer.
+  </Step>
+
+  <Step title="Test the Web UI">
+    Open `http://localhost:18789` in your browser and verify you can access the interface.
+  </Step>
+</Steps>
+
+## Managing OpenClaw
+
+Here are the essential commands for managing your OpenClaw service:
+
+<CodeGroup>
+  ```bash Start Service
+  sv up openclaw
+  ```
+
+  ```bash Stop Service
+  sv down openclaw
+  ```
+
+  ```bash Check Status
+  sv status openclaw
+  ```
+
+  ```bash View Logs
+  tail -f $PREFIX/var/log/openclaw/current
+  ```
+</CodeGroup>
+
+## Troubleshooting
+
+### Service Won't Start
+
+If the service fails to start:
+
+1. Check the logs: `tail -f $PREFIX/var/log/openclaw/current`
+2. Verify the service is configured: `ls -la $PREFIX/var/service/openclaw`
+3. Try restarting: `sv down openclaw && sv up openclaw`
+
+### OpenClaw Stops When Minimizing Termux
+
+Make sure you've run `termux-wake-lock`:
+
+```bash
+termux-wake-lock
+```
+
+You can verify the wake lock is active by checking your device's notification tray for a Termux notification.
+
+### Cannot Access Web UI
+
+1. Verify the service is running: `sv status openclaw`
+2. Check if the port is listening: `netstat -an | grep 18789`
+3. Make sure you're using `http://localhost:18789` (not HTTPS)
+
+## Next Steps
+
+Now that OpenClaw is running on your Android device:
+
+- Explore the web UI to configure automations
+- Learn about [updating OpenClaw](/scripts/update-claw) when new versions are released
+- Configure OpenClaw to access device sensors through Termux:API
+- Set up your device as a permanent IoT hub or automation server
+
+<Note>
+  Keep your device plugged in and ensure `termux-wake-lock` is active if you want OpenClaw to run continuously in the background.
 </Note>

@@ -1,0 +1,409 @@
+---
+title: Environment-Specific Fixes
+description: Deep dive into Android/Termux environment issues and how OpenClaw addresses them
+---
+
+This page explains the root causes of environment-specific issues in Android/Termux and how the setup scripts fix them.
+
+## Understanding the Android/Termux Environment
+
+Android is not a standard Linux environment. Termux provides a Linux-like userland, but with critical differences that break most Node.js applications designed for desktop Linux.
+
+### Key Differences
+
+- **No `/tmp` directory** - Termux uses `$PREFIX/tmp` instead
+- **No systemd** - Uses runit for service management
+- **Restricted paths** - Apps can't write to standard Linux paths
+- **Aggressive process killing** - Android kills background processes without wake locks
+- **Non-standard build environment** - No Android NDK by default
+
+## Critical Environment Variables
+
+### TMPDIR / TMP / TEMP Issues
+
+**Problem:**
+
+OpenClaw and many Node.js dependencies expect to write temporary files to `/tmp/`. This path:
+- Doesn't exist in Termux
+- Can't be created (permission denied)
+- Even if created, isn't writable by Termux apps
+
+**Error Messages:**
+```bash
+Error: EACCES: permission denied, mkdir '/tmp/openclaw'
+Error: ENOENT: no such file or directory, open '/tmp/some-file'
+```
+
+**Root Cause:**
+
+Termux's file system is sandboxed under `/data/data/com.termux/files/`. The standard `/tmp` is either:
+1. Non-existent
+2. Part of Android's root filesystem (not accessible)
+3. Used by Android system (not writable by Termux)
+
+**The Fix:**
+
+The setup script sets correct temp directories:
+
+```bash setup_claw.sh:25-47
+# Create the correct temp directories
+mkdir -p "$PREFIX/tmp"
+mkdir -p "$HOME/tmp"
+
+# Clean up old/duplicate entries in .bashrc
+sed -i '/export TMPDIR=/d' ~/.bashrc
+sed -i '/export TMP=/d' ~/.bashrc
+sed -i '/export TEMP=/d' ~/.bashrc
+
+# Add persistent exports to .bashrc
+echo 'export TMPDIR="$PREFIX/tmp"' >> ~/.bashrc
+echo 'export TMP="$PREFIX/tmp"' >> ~/.bashrc
+echo 'export TEMP="$PREFIX/tmp"' >> ~/.bashrc
+
+# Export for THIS session right now
+export TMPDIR="$PREFIX/tmp"
+export TMP="$PREFIX/tmp"
+export TEMP="$PREFIX/tmp"
+```
+
+**Why This Works:**
+
+- `$PREFIX` expands to `/data/data/com.termux/files/usr/`
+- `$PREFIX/tmp` is writable by Termux
+- Setting `TMPDIR`, `TMP`, and `TEMP` covers all common temp directory conventions
+- Exporting immediately + adding to `.bashrc` ensures it works now and persists
+
+<Note>
+  The script cleans old entries with `sed -i '/export TMPDIR=/d'` to prevent duplicates if re-run.
+</Note>
+
+### PATH Configuration
+
+**Problem:**
+
+When running as a service (via runit), the process doesn't inherit your shell's PATH. The service can't find `node`, `npm`, or `openclaw` commands.
+
+**Error Messages:**
+```bash
+node: command not found
+openclaw: command not found
+```
+
+**The Fix:**
+
+The service run script explicitly sets PATH:
+
+```bash setup_claw.sh:81-89
+cat <<EOF > "$SERVICE_DIR/run"
+#!/data/data/com.termux/files/usr/bin/sh
+# 1. We must explicitly set PATH so the service finds 'node'
+export PATH=$PREFIX/bin:\$PATH
+# 2. We must explicitly set TMPDIR so it can write files
+export TMPDIR=$PREFIX/tmp
+# 3. Start the gateway
+exec openclaw gateway 2>&1
+EOF
+```
+
+**Why This Works:**
+
+- Services run in a minimal environment without shell initialization
+- Explicitly setting `PATH=$PREFIX/bin` ensures Node.js and npm binaries are found
+- `TMPDIR` is also set here as a failsafe
+
+## Hardcoded /tmp/openclaw Path
+
+**Problem:**
+
+This is the most critical issue. OpenClaw's source code contains hardcoded references to `/tmp/openclaw`:
+
+```javascript
+// Somewhere in dist/entry.js
+const workDir = '/tmp/openclaw';
+```
+
+This path is baked into the compiled JavaScript, so environment variables alone can't fix it.
+
+**Why This Exists:**
+
+OpenClaw was designed for standard Linux environments where `/tmp` is universally available. The developers didn't anticipate Android/Termux deployment.
+
+**The Fix:**
+
+The setup script patches the compiled code after installation:
+
+```bash setup_claw.sh:60-70
+TARGET_FILE="$PREFIX/lib/node_modules/openclaw/dist/entry.js"
+
+if [ -f "$TARGET_FILE" ]; then
+    sed -i "s|/tmp/openclaw|$PREFIX/tmp/openclaw|g" "$TARGET_FILE"
+    echo -e "${GREEN}    Success: Patched entry.js${NC}"
+else
+    echo -e "${RED}    WARNING: entry.js not found. Installation structure might have changed.${NC}"
+fi
+```
+
+**Why This Works:**
+
+- Uses `sed` to find/replace all instances of `/tmp/openclaw` with `$PREFIX/tmp/openclaw`
+- Operates directly on the installed JavaScript file
+- Must be re-applied after every update (hence the update script)
+
+<Warning>
+  This patch is **required** after every `npm install -g openclaw@latest`. Always use the update script, or manually re-apply the patch.
+</Warning>
+
+**Why Not Fix Upstream?**
+
+Ideally, OpenClaw would respect `TMPDIR` environment variable. However:
+- We don't control the upstream source
+- Build process may take time
+- This workaround is reliable and simple
+
+## Node-GYP and Android NDK
+
+### The Problem
+
+**Error Messages:**
+```bash
+gyp ERR! configure error
+gyp ERR! stack Error: Cannot find Android NDK
+gyp ERR! stack Error: Could not find any Python installation to use
+gyp ERR! stack Error: not found: make
+```
+
+**Root Cause:**
+
+Some Node.js packages include native C++ addons that need compilation. Node-GYP (the build tool) expects:
+1. A C++ compiler (clang/gcc)
+2. Python (for build scripts)
+3. Make/CMake (build tools)
+4. On Android: Android NDK (Native Development Kit)
+
+Termux has clang and Python, but Node-GYP gets confused by:
+- Non-standard paths
+- Looking for Android NDK (which isn't needed for Termux)
+- Build environment detection failures
+
+### The Workaround
+
+**Step 1: Install build tools**
+
+```bash setup_claw.sh:21-23
+pkg install -y nodejs-lts git build-essential python cmake clang ninja pkg-config binutils
+```
+
+This provides the actual compilation tools needed.
+
+**Step 2: Create Node-GYP dummy config**
+
+```bash setup_claw.sh:49-53
+mkdir -p ~/.gyp
+# Create a dummy config so build tools don't panic looking for Android NDK
+echo "{'variables':{'android_ndk_path':''}}" > ~/.gyp/include.gypi
+```
+
+**Why This Works:**
+
+- Node-GYP reads `~/.gyp/include.gypi` for build configuration
+- Setting `android_ndk_path` to empty string tells it "NDK not available, use standard toolchain"
+- This prevents NDK detection errors while allowing native compilation
+- Termux's clang is sufficient for building native Node modules
+
+<Note>
+  This is a workaround, not a proper fix. It prevents Node-GYP from searching for NDK while still allowing native module compilation using Termux's toolchain.
+</Note>
+
+## Service Management (Runit vs Systemd)
+
+### Why No Systemd?
+
+Android doesn't use systemd. It has its own init system (Android Init), which is:
+- Not accessible to user-space apps like Termux
+- Completely different from Linux init systems
+- Requires root access to modify
+
+### Termux-Services (Runit)
+
+Termux provides `termux-services` package, which uses **runit** - a lightweight service supervisor.
+
+**Key Concepts:**
+
+- **SVDIR** - Service directory (`$PREFIX/var/service`)
+- **supervise** - Runit's process supervisor
+- **sv** - Service control command
+- **service-daemon** - Termux wrapper that starts runit
+
+**Setup Process:**
+
+```bash setup_claw.sh:72-106
+SERVICE_DIR="$PREFIX/var/service/openclaw"
+LOG_DIR="$PREFIX/var/log/openclaw"
+
+mkdir -p "$SERVICE_DIR/log"
+mkdir -p "$LOG_DIR"
+
+# Create the RUN script (The Brain)
+cat <<EOF > "$SERVICE_DIR/run"
+#!/data/data/com.termux/files/usr/bin/sh
+export PATH=$PREFIX/bin:\$PATH
+export TMPDIR=$PREFIX/tmp
+exec openclaw gateway 2>&1
+EOF
+
+# Create the LOG script
+cat <<EOF > "$SERVICE_DIR/log/run"
+#!/data/data/com.termux/files/usr/bin/sh
+exec svlogd -tt $LOG_DIR
+EOF
+
+chmod +x "$SERVICE_DIR/run"
+chmod +x "$SERVICE_DIR/log/run"
+```
+
+**Directory Structure:**
+```
+$PREFIX/var/service/openclaw/
+├── run              # Main service script (starts openclaw)
+├── log/
+│   └── run          # Log handling script (svlogd)
+└── supervise/       # Created by runit (control socket)
+```
+
+**SVDIR Configuration:**
+
+```bash setup_claw.sh:103-110
+sed -i '/export SVDIR=/d' ~/.bashrc
+echo 'export SVDIR="$PREFIX/var/service"' >> ~/.bashrc
+export SVDIR="$PREFIX/var/service"
+
+service-daemon stop >/dev/null 2>&1 || true
+service-daemon start >/dev/null 2>&1 || true
+```
+
+**Why This Works:**
+
+- Sets `SVDIR` so `sv` command knows where services are
+- Restarts service-daemon to ensure runit is supervising
+- Makes it persistent via `.bashrc`
+
+### Race Condition Handling
+
+```bash setup_claw.sh:112-116
+# Wait briefly for supervise/ok to exist so sv doesn't error out
+for i in 1 2 3 4 5; do
+  [ -e "$PREFIX/var/service/openclaw/supervise/ok" ] && break
+  sleep 1
+done
+```
+
+After creating service files, runit needs time to initialize the `supervise` directory. This loop waits up to 5 seconds for `supervise/ok` to exist before running `sv-enable`.
+
+## F-Droid vs Google Play Termux
+
+<Warning>
+  Google Play Termux is **deprecated** and should not be used. It's unmaintained since 2020 and has compatibility issues with modern packages.
+</Warning>
+
+### Use F-Droid Termux
+
+**Correct source:** https://f-droid.org/packages/com.termux/
+
+**Differences:**
+
+| Aspect | F-Droid Termux | Google Play Termux |
+|--------|----------------|--------------------|
+| Updates | Active | Frozen (2020) |
+| Package compatibility | Modern | Outdated |
+| Node.js version | Latest LTS | Old versions |
+| termux-services | Works | May fail |
+| Build tools | Full support | Limited |
+
+**Migration:**
+
+If you're on Google Play Termux:
+
+1. **Backup your data** (if needed)
+2. **Uninstall Google Play Termux**
+3. **Install F-Droid** app from https://f-droid.org/
+4. **Install Termux from F-Droid**
+5. **Run setup script again**
+
+<Note>
+  You cannot simply update from Google Play to F-Droid. They use different signing keys, so you must uninstall first.
+</Note>
+
+## Storage and Permissions
+
+### Storage Access
+
+Termux needs permission to access shared storage for certain operations.
+
+**Grant storage permission:**
+```bash
+termux-setup-storage
+```
+
+This creates `~/storage/` with symlinks to:
+- `~/storage/downloads` - Android Downloads folder
+- `~/storage/dcim` - Camera photos
+- `~/storage/shared` - Internal storage root
+
+### Wake Lock (Critical for Background Operation)
+
+**Problem:**
+
+Android kills background processes to save battery. Without wake lock, the service stops when:
+- Screen turns off
+- Termux app is closed
+- After a few minutes of inactivity
+
+**Solution:**
+
+```bash
+# Enable wake lock (prevents Android from killing the process)
+termux-wake-lock
+
+# Disable wake lock (allows normal battery management)
+termux-wake-unlock
+```
+
+**Make it persistent:**
+
+Add to `~/.bashrc` so it's enabled on every shell start:
+
+```bash
+echo 'termux-wake-lock' >> ~/.bashrc
+```
+
+<Warning>
+  Wake lock prevents Android from sleeping the CPU when screen is off. This will increase battery usage. However, it's required for OpenClaw to run continuously.
+</Warning>
+
+### Battery Optimization
+
+Even with wake lock, Android may still kill Termux due to battery optimization.
+
+**Disable battery optimization:**
+
+1. Go to Android **Settings**
+2. **Apps** → **Termux**
+3. **Battery** → **Unrestricted** (or "Don't optimize" on older Android)
+
+This tells Android to never kill Termux for battery saving.
+
+## Summary of Fixes
+
+The setup script addresses these environment issues:
+
+| Issue | Fix | Location |
+|-------|-----|----------|
+| No `/tmp` directory | Set `TMPDIR=$PREFIX/tmp` | Lines 25-47 |
+| Hardcoded `/tmp/openclaw` | Patch entry.js with sed | Lines 60-70 |
+| Node-GYP NDK errors | Create dummy `~/.gyp/include.gypi` | Lines 49-53 |
+| Service can't find node | Explicitly set PATH in run script | Lines 81-89 |
+| Service stops randomly | Manual wake lock + battery optimization | User action |
+| No systemd | Use runit via termux-services | Lines 72-118 |
+| Updates overwrite patch | Re-apply patch in update script | update_claw.sh |
+
+All these fixes are **required** for OpenClaw to function on Android. Missing any one will cause failures.

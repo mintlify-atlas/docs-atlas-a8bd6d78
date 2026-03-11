@@ -1,0 +1,309 @@
+---
+title: Common Issues
+description: Frequently encountered problems and their solutions for OpenClaw on Android
+---
+
+This page covers the most common issues users encounter when running OpenClaw on Android/Termux and their solutions.
+
+## Service Issues
+
+<Accordion title="Service won't start or keeps stopping">
+  The most common causes are:
+
+  1. **Missing environment variables** - The service needs `PATH` and `TMPDIR` set explicitly
+  2. **Termux wake lock not enabled** - Android kills background processes without it
+  3. **Service daemon not running** - The runit supervisor needs to be active
+
+  **Solution:**
+
+  ```bash
+  # Check if service daemon is running
+  service-daemon status
+
+  # If not running, restart it
+  service-daemon stop
+  service-daemon start
+
+  # Enable wake lock to prevent Android from killing the process
+  termux-wake-lock
+
+  # Start the service
+  sv up openclaw
+
+  # Check status
+  sv status openclaw
+  ```
+
+  If the service still won't start, check the logs:
+
+  ```bash
+  cat $PREFIX/var/log/openclaw/current
+  ```
+</Accordion>
+
+<Accordion title="Service stops when Termux is closed">
+  This is caused by Android's aggressive battery optimization killing background processes.
+
+  **Solution:**
+
+  1. **Enable wake lock** (required for background operation):
+     ```bash
+     termux-wake-lock
+     ```
+
+  2. **Disable battery optimization for Termux**:
+     - Go to Android Settings > Apps > Termux
+     - Battery > Unrestricted (or "Don't optimize")
+
+  3. **Keep a persistent session** (optional but recommended):
+     ```bash
+     # Run in tmux so you can reattach later
+     tmux new -s openclaw
+     sv up openclaw
+     # Detach with Ctrl+B then D
+     ```
+
+  <Note>
+    Wake lock must be re-enabled after device restart. Consider adding `termux-wake-lock` to your `~/.bashrc`.
+  </Note>
+</Accordion>
+
+<Accordion title="Web UI not accessible at localhost:18789">
+  **Possible causes:**
+
+  1. Service isn't actually running
+  2. Wrong port or binding address
+  3. Onboarding not completed
+
+  **Solution:**
+
+  ```bash
+  # 1. Verify service is running
+  sv status openclaw
+
+  # 2. Check if port is listening
+  netstat -tuln | grep 18789
+
+  # 3. Check service logs for errors
+  tail -f $PREFIX/var/log/openclaw/current
+
+  # 4. If onboarding wasn't completed, run:
+  openclaw onboard
+  # When asked about daemon/service installation: SELECT NO/SKIP
+  ```
+
+  If the service is running but UI still won't load:
+
+  ```bash
+  # Restart the service
+  sv restart openclaw
+
+  # Wait a few seconds and try accessing again
+  ```
+</Accordion>
+
+## Installation Errors
+
+<Accordion title="Permission denied errors during installation">
+  **Error message:**
+  ```
+  EACCES: permission denied, mkdir '/tmp/openclaw'
+  ```
+  or
+  ```
+  Error: EACCES: permission denied, open '/some/path'
+  ```
+
+  **Cause:** Hardcoded `/tmp` paths that don't exist or aren't writable in Termux.
+
+  **Solution:**
+
+  The setup script automatically patches this, but if you installed manually:
+
+  ```bash
+  # 1. Set correct temp directory
+  export TMPDIR="$PREFIX/tmp"
+  export TMP="$PREFIX/tmp"
+  export TEMP="$PREFIX/tmp"
+
+  # 2. Create the directory
+  mkdir -p "$PREFIX/tmp"
+
+  # 3. Patch the hardcoded path in entry.js
+  sed -i "s|/tmp/openclaw|$PREFIX/tmp/openclaw|g" \
+    "$PREFIX/lib/node_modules/openclaw/dist/entry.js"
+
+  # 4. Make it permanent
+  echo 'export TMPDIR="$PREFIX/tmp"' >> ~/.bashrc
+  echo 'export TMP="$PREFIX/tmp"' >> ~/.bashrc
+  echo 'export TEMP="$PREFIX/tmp"' >> ~/.bashrc
+  ```
+</Accordion>
+
+<Accordion title="Node-GYP compilation failures">
+  **Error message:**
+  ```
+  gyp ERR! configure error
+  gyp ERR! stack Error: Can't find Python executable "python"
+  ```
+  or
+  ```
+  Error: Cannot find Android NDK
+  ```
+
+  **Cause:** Node-GYP expects Android NDK environment that doesn't exist in standard Termux.
+
+  **Solution:**
+
+  ```bash
+  # 1. Ensure build tools are installed
+  pkg install -y build-essential python cmake clang ninja
+
+  # 2. Create Node-GYP workaround (prevents NDK search)
+  mkdir -p ~/.gyp
+  echo "{'variables':{'android_ndk_path':''}}" > ~/.gyp/include.gypi
+
+  # 3. Retry installation
+  npm install -g openclaw@latest
+  ```
+
+  <Warning>
+    If using F-Droid Termux, you may need to update to the latest version. Google Play Termux is deprecated and may have compatibility issues.
+  </Warning>
+</Accordion>
+
+<Accordion title="Cannot find module errors after installation">
+  **Error message:**
+  ```
+  Error: Cannot find module 'openclaw'
+  Error: Cannot find module '@some/dependency'
+  ```
+
+  **Cause:** PATH not set correctly, or npm global installation failed.
+
+  **Solution:**
+
+  ```bash
+  # 1. Check if openclaw is actually installed
+  npm list -g openclaw
+
+  # 2. Verify PATH includes npm global bin
+  echo $PATH | grep "$PREFIX/bin"
+
+  # 3. If PATH is wrong, fix it
+  export PATH="$PREFIX/bin:$PATH"
+  echo 'export PATH="$PREFIX/bin:$PATH"' >> ~/.bashrc
+
+  # 4. Reload environment
+  source ~/.bashrc
+
+  # 5. If module is still missing, reinstall
+  npm install -g openclaw@latest --force
+  ```
+</Accordion>
+
+<Accordion title="Update broke the installation">
+  **Symptom:** Everything worked before `npm install -g openclaw@latest`, now service won't start.
+
+  **Cause:** Updates overwrite the critical `/tmp/openclaw` path patch in `entry.js`.
+
+  **Solution:**
+
+  Use the safe update script instead of direct npm install:
+
+  ```bash
+  # Run the update script (automatically re-applies patches)
+  bash <(curl -s https://raw.githubusercontent.com/fingerthief/openclaw-android/refs/heads/main/update_claw.sh)
+  ```
+
+  Or manually re-apply the patch:
+
+  ```bash
+  # 1. Stop service
+  sv down openclaw
+
+  # 2. Update
+  npm install -g openclaw@latest
+
+  # 3. Re-apply patch
+  sed -i "s|/tmp/openclaw|$PREFIX/tmp/openclaw|g" \
+    "$PREFIX/lib/node_modules/openclaw/dist/entry.js"
+
+  # 4. Restart
+  sv up openclaw
+  ```
+
+  <Warning>
+    Always use the update script or manually re-apply patches after updating. This is required because `/tmp/openclaw` is hardcoded in the source.
+  </Warning>
+</Accordion>
+
+## Service Management
+
+<Accordion title="How to check service status and logs">
+  **Check if service is running:**
+  ```bash
+  sv status openclaw
+  ```
+
+  Output meanings:
+  - `run: openclaw: (pid 12345) 123s` - Running normally
+  - `down: openclaw: 5s` - Stopped
+  - `run: openclaw: (pid 12345) 1s; run: log: (pid 12346) 1s` - Just started
+
+  **View live logs:**
+  ```bash
+  tail -f $PREFIX/var/log/openclaw/current
+  ```
+
+  **View all logs:**
+  ```bash
+  cat $PREFIX/var/log/openclaw/current
+  ```
+
+  **Basic service commands:**
+  ```bash
+  sv up openclaw      # Start
+  sv down openclaw    # Stop
+  sv restart openclaw # Restart
+  sv status openclaw  # Check status
+  ```
+</Accordion>
+
+<Accordion title="Service daemon commands not found">
+  **Error message:**
+  ```
+  sv: command not found
+  service-daemon: command not found
+  ```
+
+  **Cause:** `termux-services` package not installed, or `SVDIR` not set.
+
+  **Solution:**
+
+  ```bash
+  # 1. Install termux-services
+  pkg install -y termux-services
+
+  # 2. Set SVDIR environment variable
+  export SVDIR="$PREFIX/var/service"
+  echo 'export SVDIR="$PREFIX/var/service"' >> ~/.bashrc
+
+  # 3. Reload shell
+  source ~/.bashrc
+
+  # 4. Start service daemon
+  service-daemon start
+  ```
+</Accordion>
+
+## Getting Help
+
+If you encounter an issue not covered here:
+
+1. **Check the logs** - Most errors are logged to `$PREFIX/var/log/openclaw/current`
+2. **Review environment variables** - Run `env | grep -E 'TMPDIR|PATH|SVDIR'`
+3. **Verify installation** - Run `npm list -g openclaw`
+4. **Check service setup** - Run `ls -la $PREFIX/var/service/openclaw/`
+
+For environment-specific issues, see [Environment Fixes](/troubleshooting/environment-fixes).

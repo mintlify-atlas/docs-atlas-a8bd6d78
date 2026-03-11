@@ -1,0 +1,266 @@
+---
+title: "Automation & Workflows"
+description: "Run automated workflows and AI tasks on Android devices"
+---
+
+## Long-Running Automation on Android
+
+OpenClaw Android enables persistent background automation on Android devices without requiring root access. The platform runs continuously in the background using termux-services (runit), making it ideal for long-running automations, scheduled tasks, and AI-powered workflows.
+
+<Tip>
+OpenClaw keeps running even when the Termux app is closed, perfect for 24/7 automation scenarios.
+</Tip>
+
+## Background Service Architecture
+
+Unlike typical Android apps that get terminated when switched away, OpenClaw runs as a persistent service:
+
+### How It Works
+
+<CardGroup cols={2}>
+  <Card title="Service Management" icon="server">
+    Uses runit (termux-services) for reliable background operation without active terminal
+  </Card>
+  <Card title="Wake Lock Support" icon="lock">
+    Keeps CPU active to prevent process termination when device sleeps
+  </Card>
+  <Card title="Auto-Restart" icon="arrows-rotate">
+    Service automatically recovers if stopped or device reboots
+  </Card>
+  <Card title="Web Interface" icon="browser">
+    Access the full OpenClaw UI at localhost:18789 from device browser
+  </Card>
+</CardGroup>
+
+```bash
+# Service management commands
+sv status openclaw    # Check if service is running
+sv up openclaw        # Start the service
+sv down openclaw      # Stop the service
+sv restart openclaw   # Restart the service
+
+# Keep service running when app is closed
+termux-wake-lock
+```
+
+<Warning>
+Always run `termux-wake-lock` after starting OpenClaw to prevent Android from killing the process when you minimize Termux.
+</Warning>
+
+## Voice Assistant Capabilities
+
+Transform your Android device into a voice-controlled AI assistant:
+
+### Voice-Enabled Automation
+
+- **Wake Word Detection**: Listen continuously for activation phrases
+- **Voice Commands**: Process natural language requests through the microphone
+- **Text-to-Speech**: Respond with audio feedback using device speakers
+- **Offline Processing**: Run AI models locally without cloud dependencies
+- **Multi-Room Audio**: Deploy multiple devices for whole-home voice control
+
+<Note>
+Access the microphone through Termux:API for voice input processing.
+</Note>
+
+## Automation Workflows
+
+OpenClaw excels at running complex, multi-step automation workflows:
+
+### Smart Home Flows
+
+<Steps>
+  <Step title="Trigger Detection">
+    Use sensors (GPS, motion, sound) to detect triggering events
+  </Step>
+  <Step title="AI Processing">
+    Process sensor data with local AI models to understand context
+  </Step>
+  <Step title="Decision Logic">
+    Execute intelligent decisions based on current state and history
+  </Step>
+  <Step title="Action Execution">
+    Control smart home devices, send notifications, or trigger other automations
+  </Step>
+</Steps>
+
+### Example Workflows
+
+**Morning Routine**
+```
+GPS detects arrival home → 
+  Check time of day → 
+    If morning: 
+      - Turn on lights
+      - Start coffee maker
+      - Read calendar
+      - Announce weather via TTS
+```
+
+**Security Monitor**
+```
+Motion detected → 
+  Check if GPS shows owner away → 
+    If away:
+      - Capture photo
+      - Analyze with vision AI
+      - Send alert if person detected
+      - Store evidence locally
+```
+
+**Energy Saver**
+```
+Battery level check every hour → 
+  If below 20% and not charging:
+    - Reduce automation frequency
+    - Disable non-critical sensors
+    - Send low battery notification
+    - Switch to power-save mode
+```
+
+## AI Task Automation
+
+Run AI-powered tasks locally on your Android device:
+
+<CardGroup cols={2}>
+  <Card title="Image Analysis" icon="image">
+    Process photos from camera using computer vision models
+  </Card>
+  <Card title="Audio Processing" icon="waveform">
+    Transcribe speech, detect sounds, analyze audio patterns
+  </Card>
+  <Card title="Natural Language" icon="message">
+    Parse commands, generate responses, understand intent
+  </Card>
+  <Card title="Data Processing" icon="chart-line">
+    Analyze sensor data, detect patterns, make predictions
+  </Card>
+</CardGroup>
+
+### Offline AI Tasks
+
+- **Privacy-First Processing**: All data stays on device
+- **No Internet Required**: Works without connectivity
+- **Instant Response**: No cloud latency
+- **Cost Efficient**: No API fees or cloud computing costs
+
+## Scheduled Automation
+
+Set up recurring tasks that run automatically:
+
+### Time-Based Triggers
+
+- **Daily Backups**: Archive important data every night
+- **Periodic Monitoring**: Check sensors on fixed schedules
+- **Maintenance Tasks**: Clean up logs, optimize storage
+- **Status Reports**: Generate and send daily summaries
+
+### Event-Based Triggers
+
+- **Geofencing**: Actions when entering/leaving locations
+- **Sensor Thresholds**: Respond when values exceed limits
+- **Network Changes**: Trigger on WiFi connect/disconnect
+- **Battery Events**: React to charge state changes
+
+<Tip>
+Combine time-based and event-based triggers for sophisticated automation scenarios.
+</Tip>
+
+## Integration Possibilities
+
+Connect OpenClaw to other services and platforms:
+
+### Local Network Integration
+
+- **Home Assistant**: Control smart home devices
+- **MQTT Broker**: Publish sensor data and subscribe to commands
+- **HTTP APIs**: Interact with web services and APIs
+- **Webhooks**: Send notifications to external systems
+
+### Device Features
+
+- **Notifications**: Display alerts on device
+- **Clipboard**: Share data between apps
+- **Storage**: Read/write files for data persistence
+- **Contacts**: Access contact information for personalized automation
+
+## Remote Automation Nodes
+
+Deploy Android devices as remote automation controllers:
+
+### Use Cases
+
+**Vacation Home Monitor**
+- Leave an old phone at a remote property
+- Monitor conditions via sensors
+- Control devices remotely
+- Alert on unusual activity
+
+**Portable Automation Hub**
+- Take automation with you when traveling
+- Consistent environment anywhere
+- Hotel room automation
+- Temporary event setups
+
+**Distributed Sensor Network**
+- Deploy multiple devices across locations
+- Centralized monitoring and control
+- Redundant automation execution
+- Load balancing for tasks
+
+## Performance Considerations
+
+Optimize automation for mobile hardware:
+
+### Resource Management
+
+<CardGroup cols={2}>
+  <Card title="CPU Usage" icon="microchip">
+    Throttle intensive tasks to prevent overheating and battery drain
+  </Card>
+  <Card title="Memory" icon="memory">
+    Monitor RAM usage and clean up completed tasks
+  </Card>
+  <Card title="Storage" icon="hard-drive">
+    Rotate logs and archive old data to prevent storage exhaustion
+  </Card>
+  <Card title="Network" icon="wifi">
+    Batch updates and sync during WiFi connectivity
+  </Card>
+</CardGroup>
+
+### Battery Life
+
+- Keep device plugged in for 24/7 operation
+- Use wireless charging for easy deployment
+- Reduce sensor polling frequency when on battery
+- Disable screen when not needed
+- Configure wake locks appropriately
+
+<Warning>
+For production deployments, keep devices connected to power. Battery-only operation is suitable for temporary or portable scenarios.
+</Warning>
+
+## Getting Started with Automation
+
+<Steps>
+  <Step title="Install OpenClaw">
+    Follow the [installation guide](/installation/setup) to set up OpenClaw Android
+  </Step>
+  <Step title="Configure Background Service">
+    Ensure the service starts automatically and stays running
+  </Step>
+  <Step title="Test Hardware Access">
+    Verify all needed sensors and features are accessible
+  </Step>
+  <Step title="Build Your First Workflow">
+    Start simple with a basic automation and expand from there
+  </Step>
+  <Step title="Monitor and Optimize">
+    Check logs and resource usage to tune performance
+  </Step>
+</Steps>
+
+<Card title="Troubleshooting" icon="wrench" href="/troubleshooting/common-issues">
+  Find solutions for common automation issues
+</Card>

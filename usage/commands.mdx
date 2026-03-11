@@ -1,0 +1,191 @@
+---
+title: OpenClaw Commands
+description: Command-line interface reference for OpenClaw on Android
+---
+
+OpenClaw provides a command-line interface for configuration and service management. After installation, the `openclaw` command is available globally in your Termux environment.
+
+## Initial Setup Command
+
+### openclaw onboard
+
+Run the interactive onboarding process to configure OpenClaw for first use:
+
+```bash
+openclaw onboard
+```
+
+This command guides you through:
+- API key configuration
+- Model selection
+- Feature preferences
+- Initial setup verification
+
+<Warning>
+**Critical**: When the onboarding process asks if you want to install a "Daemon" or "System Service", **select NO or SKIP**.
+
+The installation script has already set up the service using a method compatible with Android (runit via termux-services). Android does not support systemd, so the built-in daemon installer will not work.
+</Warning>
+
+### Post-Onboarding Steps
+
+After completing `openclaw onboard`, run these commands:
+
+```bash
+# Reload environment variables
+source ~/.bashrc
+
+# Start the service
+sv up openclaw
+
+# Enable wake lock to keep service alive
+termux-wake-lock
+```
+
+## Service Command
+
+### openclaw gateway
+
+Starts the OpenClaw gateway server. This is the main service process:
+
+```bash
+openclaw gateway
+```
+
+<Note>
+You typically **don't run this command directly**. The background service (managed by runit) runs this automatically when you use `sv up openclaw`.
+
+The service run script executes: `exec openclaw gateway 2>&1`
+</Note>
+
+### When to Run Manually
+
+You might run `openclaw gateway` directly for:
+- Testing configuration changes interactively
+- Debugging issues with verbose output
+- Development or troubleshooting
+
+To stop manual execution, press `Ctrl+C`.
+
+## Environment Variables
+
+OpenClaw relies on specific environment variables set during installation:
+
+### TMPDIR, TMP, TEMP
+
+These must point to Termux-accessible directories:
+
+```bash
+export TMPDIR="$PREFIX/tmp"
+export TMP="$PREFIX/tmp"
+export TEMP="$PREFIX/tmp"
+```
+
+<Info>
+These are automatically configured in `~/.bashrc` during installation. If commands fail with "Permission Denied" errors, verify these variables:
+
+```bash
+echo $TMPDIR
+# Should output: /data/data/com.termux/files/usr/tmp
+```
+</Info>
+
+### PATH
+
+Ensures the `openclaw` and `node` binaries are accessible:
+
+```bash
+export PATH=$PREFIX/bin:$PATH
+```
+
+This is also set automatically during installation.
+
+### SVDIR
+
+Defines the runit service directory:
+
+```bash
+export SVDIR="$PREFIX/var/service"
+```
+
+Required for `sv` commands to locate and manage the OpenClaw service.
+
+## Command Options and Flags
+
+While OpenClaw supports various command-line options, most configuration is handled through:
+- The `openclaw onboard` interactive wizard
+- Configuration files created during onboarding
+- The web UI (accessible at `http://localhost:18789`)
+
+<Tip>
+For a complete list of available commands and options, run:
+
+```bash
+openclaw --help
+```
+
+Or check help for a specific command:
+
+```bash
+openclaw gateway --help
+openclaw onboard --help
+```
+</Tip>
+
+## Updating OpenClaw
+
+To update to the latest version, use the provided update script:
+
+```bash
+cd ~/openclaw-android-setup
+./update_claw.sh
+```
+
+This script:
+1. Stops the service gracefully
+2. Updates OpenClaw via npm: `npm install -g openclaw@latest`
+3. Re-applies critical path patches (required for Android compatibility)
+4. Restarts the service
+
+<Warning>
+**Do not** update using `npm install -g openclaw@latest` directly without re-applying patches. The update will break the installation because OpenClaw has hardcoded `/tmp` paths that don't work on Android.
+
+Always use `update_claw.sh` to preserve Android-specific modifications.
+</Warning>
+
+## Troubleshooting Commands
+
+### Check Installation
+
+Verify OpenClaw is installed and accessible:
+
+```bash
+which openclaw
+# Should output: /data/data/com.termux/files/usr/bin/openclaw
+
+openclaw --version
+```
+
+### Verify Environment
+
+Check that all required environment variables are set:
+
+```bash
+env | grep -E '(TMPDIR|PATH|SVDIR)'
+```
+
+### Service Status
+
+Confirm the service is running:
+
+```bash
+sv status openclaw
+```
+
+### View Logs
+
+Check for errors or startup messages:
+
+```bash
+tail -f $PREFIX/var/log/openclaw/current
+```

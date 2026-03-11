@@ -1,0 +1,156 @@
+---
+title: "IoT Gateway"
+description: "Transform old Android devices into smart home controllers and sensor hubs"
+---
+
+## Turn Old Phones Into IoT Powerhouses
+
+OpenClaw Android transforms unused Android devices into fully capable IoT gateways and sensor hubs. With access to GPS, camera, microphone, accelerometer, battery stats, and the full network stack, your old phone becomes a versatile smart home controller without requiring additional hardware.
+
+<Note>
+All hardware features are available through Termux:API, which must be installed from F-Droid for full functionality.
+</Note>
+
+## Hardware Capabilities
+
+Android devices come with a rich set of sensors and hardware features that make them ideal for IoT projects:
+
+<CardGroup cols={2}>
+  <Card title="Location Services" icon="location-dot">
+    Built-in GPS for location tracking, geofencing, and location-based automation
+  </Card>
+  <Card title="Camera" icon="camera">
+    Front and rear cameras for visual monitoring, QR scanning, and computer vision tasks
+  </Card>
+  <Card title="Microphone" icon="microphone">
+    Audio input for voice commands, sound detection, and ambient monitoring
+  </Card>
+  <Card title="Accelerometer" icon="gauge">
+    Motion detection for movement-based triggers and orientation sensing
+  </Card>
+  <Card title="Battery Stats" icon="battery-full">
+    Monitor power levels and charging status for power-aware automation
+  </Card>
+  <Card title="Network Stack" icon="wifi">
+    Full network access for WiFi scanning, connectivity monitoring, and network automation
+  </Card>
+</CardGroup>
+
+## Smart Home Controller
+
+Use OpenClaw Android as the central hub for your smart home automation:
+
+### Automation Scenarios
+
+- **Presence Detection**: Use GPS and WiFi to detect when you arrive home and trigger welcome routines
+- **Visual Monitoring**: Position the camera to monitor entry points or specific areas
+- **Voice Control**: Accept voice commands through the microphone for hands-free control
+- **Environmental Sensing**: Detect vibrations, movement, or sounds to trigger alerts
+- **Power Management**: Monitor battery levels to manage energy-efficient automation schedules
+
+<Tip>
+Place an old phone near your front door as a dedicated entry monitor with camera, microphone, and motion detection all running simultaneously.
+</Tip>
+
+## Sensor Hub Architecture
+
+Android devices make excellent sensor aggregation points:
+
+```bash
+# Access hardware features through Termux:API
+termux-location          # Get GPS coordinates
+termux-camera-photo      # Capture images
+termux-microphone-record # Record audio
+termux-sensor            # Read accelerometer data
+termux-battery-status    # Check battery state
+termux-wifi-scaninfo     # Scan WiFi networks
+```
+
+### Multi-Sensor Projects
+
+<CardGroup cols={2}>
+  <Card title="Security System" icon="shield">
+    Combine camera, microphone, and motion sensors for comprehensive security monitoring
+  </Card>
+  <Card title="Weather Station" icon="cloud-sun">
+    Use multiple sensors and network connectivity to collect and report environmental data
+  </Card>
+  <Card title="Asset Tracker" icon="map-pin">
+    GPS tracking with battery monitoring for portable tracking solutions
+  </Card>
+  <Card title="Smart Display" icon="tv">
+    Use the screen and sensors for an interactive information dashboard
+  </Card>
+</CardGroup>
+
+## Why Android for IoT?
+
+Android devices offer unique advantages as IoT gateways:
+
+### Built-in Features
+- **Battery Backup**: Uninterruptible operation during power outages
+- **Cellular Connectivity**: Fallback internet connection when WiFi fails
+- **Touch Display**: Built-in interface for configuration and status
+- **Wireless Charging**: Easy power delivery without cables
+
+### Cost Effective
+- Repurpose existing hardware instead of buying new IoT devices
+- No additional sensor purchases needed
+- All-in-one solution with processing, sensors, and connectivity
+
+### No Root Required
+OpenClaw Android works on any Android device without system modifications, making it safe and reversible.
+
+<Warning>
+Make sure to install Termux and Termux:API from F-Droid, not Google Play. The Play Store versions are outdated and incompatible.
+</Warning>
+
+## Getting Started
+
+To start using your Android device as an IoT gateway:
+
+<Steps>
+  <Step title="Install Required Apps">
+    Download Termux and Termux:API from F-Droid
+  </Step>
+  <Step title="Run OpenClaw Setup">
+    Follow the [installation guide](/installation/setup) to install OpenClaw
+  </Step>
+  <Step title="Test Hardware Access">
+    Verify all sensors work through Termux:API commands
+  </Step>
+  <Step title="Build Your Automation">
+    Create workflows that leverage the device's sensors and capabilities
+  </Step>
+</Steps>
+
+<Card title="Installation Guide" icon="book" href="/installation/setup">
+  Get OpenClaw running on your Android device
+</Card>
+
+## Example Use Cases
+
+### Home Entry Monitor
+Combine multiple sensors for a comprehensive entry monitoring system:
+- Camera captures photos when motion detected
+- Microphone listens for specific sounds (doorbell, knocking)
+- GPS confirms you're away before sending alerts
+- Battery monitoring ensures critical alerts even during outages
+
+### Garden Automation
+Create a smart garden controller:
+- Camera takes daily growth photos
+- Accelerometer detects wind strength
+- GPS timestamp and location for records
+- Network connectivity for weather API integration
+
+### Pet Monitor
+Keep an eye on your pets:
+- Motion detection when pet enters area
+- Camera captures activity
+- Microphone detects barking or unusual sounds
+- All data processed locally for privacy
+
+<Note>
+All processing happens on-device with OpenClaw, ensuring privacy and eliminating cloud dependencies.
+</Note>

@@ -1,0 +1,344 @@
+---
+title: "Edge Computing"
+description: "Deploy local AI processing on Android devices without cloud dependencies"
+---
+
+## AI Processing at the Edge
+
+OpenClaw Android transforms mobile devices into edge computing nodes, enabling local AI processing without cloud dependencies. Run AI models, process sensor data, and execute intelligent automation entirely on-device for improved privacy, reduced latency, and zero cloud costs.
+
+<CardGroup cols={3}>
+  <Card title="Privacy" icon="shield-halved">
+    All data stays on device—no cloud uploads
+  </Card>
+  <Card title="Speed" icon="bolt">
+    Instant processing without network latency
+  </Card>
+  <Card title="Cost" icon="dollar-sign">
+    Zero API fees or cloud computing charges
+  </Card>
+</CardGroup>
+
+## Why Edge Computing on Android?
+
+Android devices are surprisingly capable edge computing platforms:
+
+### Hardware Advantages
+
+- **Modern Processors**: ARM CPUs optimized for efficient computation
+- **Sufficient RAM**: Most devices have 4GB+ for AI model execution
+- **Built-in Storage**: Local storage for models, data, and results
+- **Rich Sensors**: Multiple data sources without external hardware
+- **Network Connectivity**: WiFi and cellular for optional cloud sync
+- **Portable Power**: Battery operation for flexible deployment
+
+### Software Benefits
+
+- **No Root Required**: Works on stock Android without modifications
+- **Linux Environment**: Full Termux environment for standard tools
+- **Node.js Support**: Run JavaScript-based AI frameworks
+- **Python Available**: Access Python ML libraries through Termux
+- **Service Architecture**: Persistent background processing
+
+<Tip>
+Old flagship phones from 2-3 years ago often have sufficient power for edge AI while being nearly free to acquire.
+</Tip>
+
+## Offline AI Capabilities
+
+Run AI tasks completely offline without internet connectivity:
+
+### Local Model Execution
+
+<CardGroup cols={2}>
+  <Card title="Vision Models" icon="eye">
+    Image classification, object detection, and scene understanding
+  </Card>
+  <Card title="Language Models" icon="language">
+    Text generation, intent classification, and semantic understanding
+  </Card>
+  <Card title="Audio Models" icon="microphone">
+    Speech recognition, sound classification, and audio analysis
+  </Card>
+  <Card title="Sensor Analytics" icon="chart-line">
+    Pattern recognition in GPS, accelerometer, and other sensor data
+  </Card>
+</CardGroup>
+
+### Offline Operation Benefits
+
+**Privacy & Security**
+- Sensitive data never leaves the device
+- No risk of data breaches from cloud providers
+- Compliance with strict privacy regulations
+- Ideal for medical, financial, or personal data
+
+**Reliability**
+- Works without internet connectivity
+- No dependency on cloud service availability
+- Continues operating during network outages
+- Predictable performance without network variability
+
+**Cost Efficiency**
+- No recurring API fees
+- No bandwidth costs for data upload
+- No cloud compute charges
+- One-time hardware cost only
+
+## Portable AI Controller
+
+Carry intelligent automation in your pocket:
+
+### Mobile Edge Scenarios
+
+**Field Research**
+```
+Researchers collecting data in remote areas:
+- GPS tracking of sample locations
+- Photo documentation with AI classification
+- Audio recording with on-device transcription
+- All processing without cellular coverage
+```
+
+**Industrial Inspection**
+```
+Maintenance technicians using AI assistance:
+- Camera captures equipment photos
+- Vision AI detects defects or anomalies
+- Results stored locally for later sync
+- Voice notes transcribed on-device
+```
+
+**Event Monitoring**
+```
+Temporary deployments at events:
+- Audio monitoring for specific sounds
+- People counting via camera
+- Environmental sensing
+- Real-time local analytics
+```
+
+<Note>
+The portable form factor of Android devices makes them ideal for scenarios where traditional edge servers are too bulky or power-hungry.
+</Note>
+
+## Remote Monitoring Nodes
+
+Deploy Android devices as standalone edge computing stations:
+
+### Deployment Scenarios
+
+<Steps>
+  <Step title="Install OpenClaw">
+    Set up the device with OpenClaw and required AI models
+  </Step>
+  <Step title="Deploy to Location">
+    Place device where monitoring or processing is needed
+  </Step>
+  <Step title="Configure Power">
+    Connect to power (AC or solar) for continuous operation
+  </Step>
+  <Step title="Enable Connectivity">
+    Optional: configure WiFi or cellular for remote access
+  </Step>
+</Steps>
+
+### Example Deployments
+
+**Remote Property Monitoring**
+- Old phone left at vacation home
+- Camera AI detects intrusion attempts
+- Sound analysis identifies breaking glass or alarms
+- GPS confirms device hasn't been moved
+- Cellular alerts when threats detected
+
+**Environmental Sensing**
+- Device deployed in outdoor location
+- Sensors collect temperature, motion, sound data
+- AI models detect anomalies or patterns
+- Solar panel + battery for power
+- Periodic data sync when in range
+
+**Retail Analytics**
+- Device positioned to monitor store area
+- Vision AI counts customer traffic
+- Audio analysis detects customer sentiment
+- All processing happens locally
+- Summary stats uploaded nightly
+
+## Resource Considerations
+
+Optimize AI processing for mobile hardware constraints:
+
+### Model Selection
+
+<CardGroup cols={2}>
+  <Card title="Quantized Models" icon="compress">
+    Use INT8 or FP16 models instead of FP32 for reduced memory and faster inference
+  </Card>
+  <Card title="Mobile-Optimized" icon="mobile">
+    Choose models designed for edge devices (MobileNet, TinyBERT, etc.)
+  </Card>
+  <Card title="Model Pruning" icon="scissors">
+    Remove unnecessary parameters to reduce model size
+  </Card>
+  <Card title="Batch Processing" icon="layer-group">
+    Process multiple inputs together for efficiency
+  </Card>
+</CardGroup>
+
+### Performance Optimization
+
+**CPU Utilization**
+```bash
+# Monitor CPU usage
+top -n 1
+
+# Check temperature to prevent overheating
+termux-battery-status | grep temperature
+```
+
+**Memory Management**
+```bash
+# Check available memory
+free -h
+
+# Monitor OpenClaw memory usage
+ps aux | grep openclaw
+```
+
+**Storage Planning**
+- AI models: 100MB - 2GB per model
+- Operating data: 1-5GB for logs and cache
+- Results storage: depends on capture rate
+- Recommend: 16GB+ free storage minimum
+
+### Thermal Management
+
+<Warning>
+Continuous AI processing can generate heat. Ensure adequate cooling:
+- Avoid direct sunlight on device
+- Provide ventilation around device
+- Consider small cooling fan for 24/7 operation
+- Monitor temperature via termux-battery-status
+- Throttle processing if overheating detected
+</Warning>
+
+## Edge Computing Patterns
+
+Common architectures for mobile edge deployment:
+
+### Standalone Edge Node
+```
+[Sensors] → [OpenClaw AI] → [Local Storage]
+                ↓
+        [Periodic Cloud Sync]
+```
+Fully autonomous operation with optional cloud backup.
+
+### Hub-and-Spoke
+```
+[Edge Node 1] ←→ [Central Hub] ←→ [Edge Node 2]
+[Edge Node 3] ←→     (Android)  ←→ [Edge Node 4]
+```
+Android device aggregates data from multiple edge sensors.
+
+### Hierarchical Processing
+```
+[Local Sensors] → [Device AI] → [Basic Processing]
+                       ↓
+                [Complex Analysis]
+                       ↓
+              [Cloud When Needed]
+```
+Process simple tasks locally, escalate complex cases.
+
+## Privacy-First Architecture
+
+Edge computing inherently supports privacy:
+
+### Data Minimization
+
+- **Process Locally**: Extract insights without storing raw data
+- **Selective Sync**: Only upload anonymized summaries
+- **Automatic Deletion**: Purge raw data after processing
+- **No Cloud Storage**: Sensitive data never leaves device
+
+### Use Cases Requiring Privacy
+
+<CardGroup cols={2}>
+  <Card title="Health Monitoring" icon="heartbeat">
+    Process health data locally without HIPAA concerns
+  </Card>
+  <Card title="Security Cameras" icon="video">
+    Analyze footage on-device, only alert on events
+  </Card>
+  <Card title="Voice Assistants" icon="microphone">
+    Speech processing without recordings sent to cloud
+  </Card>
+  <Card title="Personal Analytics" icon="user">
+    Track personal metrics without sharing data
+  </Card>
+</CardGroup>
+
+## Getting Started with Edge AI
+
+<Steps>
+  <Step title="Choose Your Model">
+    Select lightweight AI models appropriate for mobile hardware
+  </Step>
+  <Step title="Install OpenClaw">
+    Follow the [installation guide](/installation/setup) to set up your device
+  </Step>
+  <Step title="Deploy Models">
+    Transfer AI models to device storage through Termux
+  </Step>
+  <Step title="Test Performance">
+    Benchmark inference speed and resource usage
+  </Step>
+  <Step title="Optimize">
+    Tune batch sizes, threading, and model parameters
+  </Step>
+  <Step title="Deploy">
+    Put device in production with monitoring
+  </Step>
+</Steps>
+
+## Practical Deployment Tips
+
+### Device Selection
+
+- **CPU**: Snapdragon 660+ or equivalent for good AI performance
+- **RAM**: 4GB minimum, 6GB+ recommended
+- **Storage**: 32GB+ for models and data
+- **Battery**: 3000mAh+ if running on battery
+- **Cooling**: Metal-backed phones dissipate heat better
+
+### Power Planning
+
+<CardGroup cols={2}>
+  <Card title="AC Power" icon="plug">
+    Best for 24/7 stationary deployments
+  </Card>
+  <Card title="USB Power Bank" icon="battery-full">
+    Portable operation for several hours
+  </Card>
+  <Card title="Solar + Battery" icon="solar-panel">
+    Remote deployments without grid power
+  </Card>
+  <Card title="Wireless Charging" icon="charging-station">
+    Easy deployment without cable management
+  </Card>
+</CardGroup>
+
+### Monitoring & Maintenance
+
+- Check logs regularly: `tail -f $PREFIX/var/log/openclaw/current`
+- Monitor resource usage to prevent exhaustion
+- Set up alerts for errors or anomalies
+- Plan for periodic model updates
+- Test failover and recovery procedures
+
+<Card title="Troubleshooting" icon="wrench" href="/troubleshooting/common-issues">
+  Solutions for common edge deployment issues
+</Card>

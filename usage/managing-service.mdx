@@ -1,0 +1,159 @@
+---
+title: Managing the Service
+description: Learn how to control the OpenClaw background service using runit service commands
+---
+
+OpenClaw runs as a persistent background service managed by **runit** (via `termux-services`). This allows it to run continuously without requiring an active terminal session.
+
+## Service Commands
+
+The `sv` command is used to control the OpenClaw service. All commands follow the pattern `sv <action> openclaw`.
+
+### Check Service Status
+
+View the current state of the OpenClaw service:
+
+```bash
+sv status openclaw
+```
+
+This shows whether the service is running, stopped, or in an error state, along with uptime information.
+
+### Start the Service
+
+Start OpenClaw if it's not running:
+
+```bash
+sv up openclaw
+```
+
+The service will begin in the background and start the OpenClaw gateway.
+
+### Stop the Service
+
+Gracefully stop the OpenClaw service:
+
+```bash
+sv down openclaw
+```
+
+This is recommended before performing updates or making configuration changes.
+
+### Restart the Service
+
+Restart OpenClaw (useful after configuration changes):
+
+```bash
+sv restart openclaw
+```
+
+This performs a clean stop and start cycle.
+
+## Viewing Logs
+
+Service logs are managed by `svlogd` and stored in a rotating format. To view real-time logs:
+
+```bash
+tail -f $PREFIX/var/log/openclaw/current
+```
+
+This displays the most recent log entries and continues showing new entries as they're written.
+
+<Tip>
+The `$PREFIX` variable in Termux expands to `/data/data/com.termux/files/usr`, so logs are stored at `/data/data/com.termux/files/usr/var/log/openclaw/current`.
+</Tip>
+
+## Understanding Service States
+
+The `sv status` command can return several states:
+
+- **run**: Service is running normally
+- **down**: Service is stopped
+- **finish**: Service completed execution
+- **fail**: Service encountered an error and stopped
+
+If the service fails to start, check the logs for error messages that can help diagnose the issue.
+
+## Keeping the Service Alive
+
+Android's aggressive battery optimization can kill background processes when Termux is minimized. To prevent this:
+
+```bash
+termux-wake-lock
+```
+
+<Warning>
+The wake lock **must** be enabled to keep OpenClaw running when you minimize Termux. Without it, the service may be terminated by Android's process manager.
+</Warning>
+
+### What Happens When Termux is Closed
+
+With `termux-wake-lock` active:
+- OpenClaw continues running in the background
+- The service remains accessible via the web UI
+- All automation and workflows continue executing
+
+Without wake lock:
+- Android may kill the Termux process after a few minutes
+- The OpenClaw service will stop
+- You'll need to reopen Termux and restart the service
+
+### Disabling Wake Lock
+
+If you need to release the wake lock:
+
+```bash
+termux-wake-unlock
+```
+
+This allows Android to manage power normally but may result in service termination.
+
+## Service Configuration
+
+The service is defined by two run scripts:
+
+**Main Service** (`$PREFIX/var/service/openclaw/run`):
+- Sets required environment variables (`PATH`, `TMPDIR`)
+- Starts the OpenClaw gateway using `openclaw gateway`
+
+**Logging Service** (`$PREFIX/var/service/openclaw/log/run`):
+- Manages log rotation and timestamping
+- Writes to `$PREFIX/var/log/openclaw/`
+
+<Note>
+These scripts are created automatically during installation. Manual modification is generally not needed unless you're troubleshooting or customizing the setup.
+</Note>
+
+## Common Issues
+
+### Service Won't Start
+
+1. Check if the service directory exists:
+   ```bash
+   ls $PREFIX/var/service/openclaw
+   ```
+
+2. Verify environment variables are set:
+   ```bash
+   source ~/.bashrc
+   ```
+
+3. Check for errors in logs:
+   ```bash
+   tail -50 $PREFIX/var/log/openclaw/current
+   ```
+
+### Service Keeps Stopping
+
+- Ensure `termux-wake-lock` is active
+- Check logs for crash messages
+- Verify that onboarding was completed successfully
+
+### Cannot Access Logs
+
+If the log directory doesn't exist:
+
+```bash
+mkdir -p $PREFIX/var/log/openclaw
+sv restart openclaw
+```
