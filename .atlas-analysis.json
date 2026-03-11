@@ -1,0 +1,78 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "OpenClaw Android",
+  "projectDescription": "Install and manage OpenClaw AI assistant on Android devices using Termux without root access.",
+  "theme": "aspen",
+  "primaryColor": "#dcba32",
+  "lightColor": "#24345b",
+  "darkColor": "#8c8441",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": [
+          "introduction",
+          "prerequisites",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Installation",
+        "pages": [
+          "installation/setup",
+          "installation/onboarding",
+          "installation/finalize"
+        ]
+      },
+      {
+        "group": "Usage",
+        "pages": [
+          "usage/managing-service",
+          "usage/commands",
+          "usage/web-ui"
+        ]
+      },
+      {
+        "group": "Scripts",
+        "pages": [
+          "scripts/setup-claw",
+          "scripts/update-claw"
+        ]
+      },
+      {
+        "group": "Troubleshooting",
+        "pages": [
+          "troubleshooting/common-issues",
+          "troubleshooting/environment-fixes"
+        ]
+      },
+      {
+        "group": "Use Cases",
+        "pages": [
+          "use-cases/iot-gateway",
+          "use-cases/automation",
+          "use-cases/edge-computing"
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "One-liner installation script for OpenClaw on Android via Termux",
+    "No root access required - works on any Android device",
+    "Background service management with termux-services (runit)",
+    "Automatic path patching for Android compatibility",
+    "Safe update script that preserves configurations",
+    "Access to hardware sensors (GPS, camera, mic, accelerometer)",
+    "Persistent operation with wake-lock support"
+  ],
+  "publicApiSurface": [
+    "setup_claw.sh - Complete installation and environment setup",
+    "update_claw.sh - Safe update with configuration preservation",
+    "sv status openclaw - Check service status",
+    "sv up openclaw - Start OpenClaw service",
+    "sv down openclaw - Stop OpenClaw service",
+    "openclaw onboard - Run OpenClaw onboarding",
+    "openclaw gateway - Start OpenClaw gateway",
+    "termux-wake-lock - Keep CPU awake for background operation"
+  ]
+}
